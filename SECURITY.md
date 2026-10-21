@@ -2,7 +2,14 @@
 
 ## Supported versions
 
-Only the latest release of each repository receives security fixes.
+Every repository follows [semantic versioning](VERSIONING.md). Security fixes
+are released for:
+
+- the latest minor release of the current major version;
+- the latest minor release of the previous major version, for 6 months after the
+  next major version is released.
+
+Older versions do not receive fixes.
 
 ## Reporting a vulnerability
 

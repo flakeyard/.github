@@ -9,6 +9,7 @@ applied to every repository by a script.
 | `organization/*.json`      | `settings.sh` | organization, Actions policies |
 | `repository/settings.json` | `apply.sh`    | merge, secret scanning         |
 | `repository/labels.json`   | `apply.sh`    | issue and PR labels            |
+| `repository/topics.json`   | `apply.sh`    | topics, matched by repo glob   |
 | `repository/rulesets/`     | `apply.sh`    | `main` and `v*` tags           |
 
 ## Usage
@@ -22,6 +23,10 @@ gh auth refresh -h github.com -s admin:org  # once, for settings.sh
 ./apply.sh                                  # all repositories
 ./apply.sh atom-lint                        # a single repository
 ```
+
+`apply.sh` also enables Dependabot alerts, private vulnerability reporting and
+immutable releases in every repository, CodeQL default setup in `atom-*` and
+`action-*`, and Discussions in `.github`, which serve the whole organization.
 
 Run `apply.sh` for every new repository. It needs the ID of the release bot
 GitHub App, either as `BOT_APP_ID` in the environment or as the organization

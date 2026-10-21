@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Apply repository settings, labels, rulesets and security features.
+# Apply repository settings, labels, topics, rulesets and security features.
 #
 # Usage: apply.sh [repo...]
 #   Without arguments, applies to every non-archived repository of $ORG.
@@ -41,6 +41,11 @@ render_ruleset() {
 apply_settings() {
   gh api --silent -X PATCH "repos/$org/$1" \
     --input "$here/repository/settings.json"
+  # Discussions of the .github repository are the discussions of the whole
+  # organization.
+  if [[ $1 == .github ]]; then
+    gh api --silent -X PATCH "repos/$org/$1" -F has_discussions=true
+  fi
 }
 
 apply_labels() {
@@ -51,6 +56,18 @@ apply_labels() {
       gh label create "$name" --repo "$org/$repo" --color "$color" \
         --description "$description" --force >/dev/null
     done
+}
+
+apply_topics() {
+  local repo=$1 current
+  current=$(gh api "repos/$org/$repo/topics" --jq '.names')
+  # Keys of topics.json are globs; only "*" is special. Existing topics stay.
+  jq --arg repo "$repo" --argjson current "$current" '
+    def glob: "^" + (gsub("\\."; "\\.") | gsub("\\*"; ".*")) + "$";
+    {names: ($current + [to_entries[]
+      | select(.key as $k | $repo | test($k | glob)) | .value[]] | unique)}
+  ' "$here/repository/topics.json" \
+    | gh api --silent -X PUT "repos/$org/$repo/topics" --input -
 }
 
 apply_rulesets() {
@@ -74,6 +91,7 @@ apply_security() {
   local repo=$1
   gh api --silent -X PUT "repos/$org/$repo/vulnerability-alerts"
   gh api --silent -X PUT "repos/$org/$repo/private-vulnerability-reporting"
+  gh api --silent -X PUT "repos/$org/$repo/immutable-releases"
   # CodeQL default setup conflicts with an own CodeQL workflow, so it is
   # enabled only for atoms and actions, and only once there is a commit.
   if [[ $repo == atom-* || $repo == action-* ]] && has_commits "$repo"; then
@@ -94,6 +112,7 @@ fi
 for repo in "${repos[@]}"; do
   apply_settings "$repo"
   apply_labels "$repo"
+  apply_topics "$repo"
   apply_rulesets "$repo"
   apply_security "$repo"
   printf '%s: done\n' "$repo"

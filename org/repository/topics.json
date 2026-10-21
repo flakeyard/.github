@@ -1,0 +1,7 @@
+{
+  "*": ["flakeyard"],
+  "atom-*": ["nix", "nix-flake", "flake-parts"],
+  "action-*": ["github-actions", "nix"],
+  "template-*": ["copier", "copier-template", "nix"],
+  "decisions": ["architecture-decision-records", "adr"]
+}

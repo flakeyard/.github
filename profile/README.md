@@ -12,4 +12,13 @@ Composable building blocks for Nix-based project templates.
 - **Templates** (`template-*`): [Copier](https://copier.readthedocs.io/)
   templates that compose atoms into ready-to-use projects.
 
+## Learn more
+
+- [Versioning and support][versioning]
+- [Architecture decisions](https://github.com/flakeyard/decisions)
+- [Discussions](https://github.com/orgs/flakeyard/discussions) for questions and
+  announcements
+
 > Status: work in progress.
+
+[versioning]: https://github.com/flakeyard/.github/blob/main/VERSIONING.md

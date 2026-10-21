@@ -1,0 +1,11 @@
+{
+  "github_owned_allowed": true,
+  "verified_allowed": false,
+  "patterns_allowed": [
+    "cachix/install-nix-action@*",
+    "cachix/cachix-action@*",
+    "googleapis/release-please-action@*",
+    "peter-evans/create-pull-request@*",
+    "devcontainers/ci@*"
+  ]
+}

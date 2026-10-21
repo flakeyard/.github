@@ -1,0 +1,24 @@
+[
+  {
+    "name": "bug",
+    "color": "d73a4a",
+    "description": "Something is not working"
+  },
+  {
+    "name": "enhancement",
+    "color": "a2eeef",
+    "description": "New feature or request"
+  },
+  {
+    "name": "documentation",
+    "color": "0075ca",
+    "description": "Documentation only"
+  },
+  {
+    "name": "dependencies",
+    "color": "0366d6",
+    "description": "Dependency updates"
+  },
+  { "name": "security", "color": "b60205", "description": "Security related" },
+  { "name": "breaking", "color": "000000", "description": "Breaking change" }
+]

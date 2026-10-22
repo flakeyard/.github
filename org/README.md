@@ -34,7 +34,7 @@ variable of the same name; only that app may create, move or delete `v*` tags.
 
 Every released repository, all except `.github` and `decisions`, gets the
 environment `release`, deployable only from `main` and `release/v*`. The bot's
-private key is a secret of that environment
+private key is the secret `APP_PRIVATE_KEY` of that environment
 ([FY-0010](https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0010-release-bot.md)).
 Pass the key file to store it, for a new repository or after a rotation:
 

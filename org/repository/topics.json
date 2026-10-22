@@ -2,6 +2,9 @@
   "*": ["flakeyard"],
   "atom-*": ["nix", "nix-flake", "flake-parts"],
   "action-*": ["github-actions", "nix"],
+  "workflow-*": ["github-actions", "reusable-workflows"],
+  "image-*": ["devcontainer", "oci-image", "nix"],
   "template-*": ["copier", "copier-template", "nix"],
+  "renovate-config": ["renovate", "renovate-config"],
   "decisions": ["architecture-decision-records", "adr"]
 }

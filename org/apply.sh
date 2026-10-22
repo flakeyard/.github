@@ -112,7 +112,10 @@ apply_environments() {
       -f name="$branch" -f type=branch
   done
   if [[ -n $bot_key_file ]]; then
-    gh secret set BOT_PRIVATE_KEY --repo "$org/$repo" --env release \
+    # The name must match the secret declared by the release workflow: an
+    # environment secret reaches a reusable workflow only under the name the
+    # caller passes.
+    gh secret set APP_PRIVATE_KEY --repo "$org/$repo" --env release \
       <"$bot_key_file"
   fi
 }

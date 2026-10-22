@@ -10,7 +10,7 @@ applied to every repository by a script.
 | `repository/settings.json` | `apply.sh`    | merge, secret scanning         |
 | `repository/labels.json`   | `apply.sh`    | issue and PR labels            |
 | `repository/topics.json`   | `apply.sh`    | topics, matched by repo glob   |
-| `repository/rulesets/`     | `apply.sh`    | `main` (signed) and `v*` tags  |
+| `repository/rulesets/`     | `apply.sh`    | `main`, `v*` tags and branches |
 
 ## Usage
 

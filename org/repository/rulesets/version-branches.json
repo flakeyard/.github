@@ -1,0 +1,15 @@
+{
+  "name": "version-branches",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": { "include": ["refs/heads/v[0-9]*"], "exclude": [] }
+  },
+  "bypass_actors": [],
+  "rules": [
+    { "type": "creation" },
+    { "type": "update" },
+    { "type": "deletion" },
+    { "type": "non_fast_forward" }
+  ]
+}

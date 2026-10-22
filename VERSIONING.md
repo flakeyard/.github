@@ -21,11 +21,18 @@ A breaking change of any of the following requires a new major version:
   permissions.
 - **Templates**: questions and their defaults, the layout of generated projects
   and the minimum Copier version.
-- **Dev container image**: the tools it provides and its Nix configuration.
+- **Dev container image** ([FY-0005][fy-0005]):
+  - the user `dev`, its home `/home/dev`, and `DEV_UID`/`DEV_GID`;
+  - the behaviour of the entrypoint and the environment variables it sets;
+  - the Nix settings and `/etc/nix/local.conf`;
+  - the settings in its `devcontainer.metadata` label;
+  - the tools it provides by name, and the Nix implementation with its minor
+    version;
+  - supported platforms, container engines and required capabilities.
 
-Tool versions are not part of an atom's API: atoms run the tools from the
-project's nixpkgs, so a new warning after a nixpkgs update comes from that
-update, not from an atom release.
+Tool versions are not part of the API of atoms or of the image, except for the
+image's Nix: atoms run the tools from the project's nixpkgs, so a new warning
+after a nixpkgs update comes from that update, not from an atom release.
 
 ## Releases
 
@@ -47,3 +54,5 @@ is released, see [SECURITY.md](SECURITY.md).
 
 [fy-0004]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0004-atom-contract.md
+[fy-0005]:
+  https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0005-dev-container-image.md

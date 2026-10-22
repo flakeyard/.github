@@ -28,6 +28,13 @@ gh auth refresh -h github.com -s admin:org  # once, for settings.sh
 immutable releases in every repository, CodeQL default setup in `atom-*` and
 `action-*`, and Discussions in `.github`, which serve the whole organization.
 
+`settings.sh` also stores the identifiers of the release bot GitHub App as the
+organization variables `BOT_APP_ID` and `BOT_CLIENT_ID` when they are given:
+
+```sh
+BOT_APP_ID=5414823 BOT_CLIENT_ID=Iv23... ./settings.sh
+```
+
 Run `apply.sh` for every new repository. It needs the ID of the release bot
 GitHub App, either as `BOT_APP_ID` in the environment or as the organization
 variable of the same name; only that app may create, move or delete `v*` tags.

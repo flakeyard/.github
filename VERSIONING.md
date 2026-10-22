@@ -12,7 +12,7 @@ without guarantees or support.
 
 A breaking change of any of the following requires a new major version:
 
-- **Atoms** ([FY-0004][fy-0004]):
+- **Atoms** ([FY-0017][fy-0017]):
   - their inputs and the names of those inputs;
   - `flakeModules` and the names of `apps`, `checks` and `devShells` they add;
   - the tools they enable, git hook ids and formatter names;
@@ -63,8 +63,8 @@ releases are not patched. The previous major version receives security fixes for
 6 months after the next major version is released, see
 [SECURITY.md](SECURITY.md).
 
-[fy-0004]:
-  https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0004-atom-contract.md
+[fy-0017]:
+  https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0017-atom-contract.md
 [fy-0005]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0005-dev-container-image.md
 [fy-0006]:

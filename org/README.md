@@ -52,3 +52,6 @@ the web UI:
 - Visibility and Actions access of container packages (GHCR), available only
   after the first push.
 - Code security configurations.
+- Personal access token policy (Settings → Personal access tokens): fine-grained
+  tokens allowed with administrator approval and a maximum lifetime of 90 days;
+  classic tokens restricted. GitHub offers no API for this policy.

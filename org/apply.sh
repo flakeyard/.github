@@ -6,7 +6,8 @@
 #
 # Requires gh with a token that has the repo scope, and jq. The GitHub App
 # that may create and move release tags is read from $BOT_APP_ID or from the
-# organization variable BOT_APP_ID.
+# organization variable BOT_APP_ID. When $BOT_PRIVATE_KEY_FILE names its private
+# key, the key is stored in the environment "release" of released repositories.
 set -euo pipefail
 
 org=${ORG:-flakeyard}
@@ -27,6 +28,10 @@ if [[ -z $bot_app_id ]]; then
 fi
 [[ $bot_app_id =~ ^[0-9]+$ ]] \
   || die "BOT_APP_ID is not set (environment or organization variable)"
+
+bot_key_file=${BOT_PRIVATE_KEY_FILE:-}
+[[ -z $bot_key_file || -r $bot_key_file ]] \
+  || die "cannot read BOT_PRIVATE_KEY_FILE: $bot_key_file"
 
 has_commits() {
   # An empty repository answers 409 Conflict.
@@ -87,6 +92,31 @@ apply_rulesets() {
   done
 }
 
+is_released() {
+  [[ $1 != .github && $1 != decisions ]]
+}
+
+apply_environments() {
+  local repo=$1 env existing branch
+  is_released "$repo" || return 0
+  env="repos/$org/$repo/environments/release"
+  # The bot key is available only to jobs on main and release branches.
+  gh api --silent -X PUT "$env" \
+    -F 'deployment_branch_policy[protected_branches]=false' \
+    -F 'deployment_branch_policy[custom_branch_policies]=true'
+  existing=$(gh api "$env/deployment-branch-policies" \
+    --jq '.branch_policies[].name')
+  for branch in main 'release/v*'; do
+    grep -qxF -- "$branch" <<<"$existing" && continue
+    gh api --silent -X POST "$env/deployment-branch-policies" \
+      -f name="$branch" -f type=branch
+  done
+  if [[ -n $bot_key_file ]]; then
+    gh secret set BOT_PRIVATE_KEY --repo "$org/$repo" --env release \
+      <"$bot_key_file"
+  fi
+}
+
 apply_security() {
   local repo=$1
   gh api --silent -X PUT "repos/$org/$repo/vulnerability-alerts"
@@ -114,6 +144,7 @@ for repo in "${repos[@]}"; do
   apply_labels "$repo"
   apply_topics "$repo"
   apply_rulesets "$repo"
+  apply_environments "$repo"
   apply_security "$repo"
   printf '%s: done\n' "$repo"
 done

@@ -21,7 +21,7 @@ and are safe to run repeatedly.
 gh auth refresh -h github.com -s admin:org  # once, for settings.sh
 ./settings.sh                               # organization settings
 ./apply.sh                                  # all repositories
-./apply.sh atom-lint                        # a single repository
+./apply.sh atom-shell                       # a single repository
 ```
 
 `apply.sh` also enables Dependabot alerts, private vulnerability reporting and
@@ -32,12 +32,22 @@ Run `apply.sh` for every new repository. It needs the ID of the release bot
 GitHub App, either as `BOT_APP_ID` in the environment or as the organization
 variable of the same name; only that app may create, move or delete `v*` tags.
 
+Every released repository, all except `.github` and `decisions`, gets the
+environment `release`, deployable only from `main` and `release/v*`. The bot's
+private key is a secret of that environment
+([FY-0010](https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0010-release-bot.md)).
+Pass the key file to store it, for a new repository or after a rotation:
+
+```sh
+BOT_PRIVATE_KEY_FILE=~/flakeyard-bot.pem ./apply.sh atom-shell
+```
+
 ## Not covered
 
 Some settings have no API or depend on external services and are configured in
 the web UI:
 
-- GitHub App for releases (`BOT_APP_ID`, `BOT_PRIVATE_KEY`).
+- Creation of the release GitHub App and of its private keys.
 - Renovate installation (Mend) and binary cache tokens.
 - Visibility and Actions access of container packages (GHCR), available only
   after the first push.

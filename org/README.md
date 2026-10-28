@@ -4,13 +4,13 @@ Settings of the flakeyard organization and its repositories, kept as code.
 GitHub Free has no organization-level rulesets, so repository-level settings are
 applied to every repository by a script.
 
-| Path                       | Applied by    | Scope                          |
-| -------------------------- | ------------- | ------------------------------ |
-| `organization/*.json`      | `settings.sh` | organization, Actions policies |
-| `repository/settings.json` | `apply.sh`    | merge, secret scanning         |
-| `repository/labels.json`   | `apply.sh`    | issue and PR labels            |
-| `repository/topics.json`   | `apply.sh`    | topics, matched by repo glob   |
-| `repository/rulesets/`     | `apply.sh`    | `main`, `v*` tags and branches |
+| Path                       | Applied by    | Scope                           |
+| -------------------------- | ------------- | ------------------------------- |
+| `organization/*.json`      | `settings.sh` | organization, Actions policies  |
+| `repository/settings.json` | `apply.sh`    | merge, secret scanning          |
+| `repository/labels.json`   | `apply.sh`    | issue and PR labels             |
+| `repository/topics.json`   | `apply.sh`    | topics, matched by repo glob    |
+| `repository/rulesets/`     | `apply.sh`    | `main`, `release/v*`, `v*` refs |
 
 ## Usage
 

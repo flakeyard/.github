@@ -10,6 +10,7 @@ applied to every repository by a script.
 | `repository/settings.json` | `apply.sh`    | merge, secret scanning          |
 | `repository/labels.json`   | `apply.sh`    | issue and PR labels             |
 | `repository/topics.json`   | `apply.sh`    | topics, matched by repo glob    |
+| `repository/released.json` | `apply.sh`    | repos that get `release`        |
 | `repository/rulesets/`     | `apply.sh`    | `main`, `release/v*`, `v*` refs |
 
 ## Usage
@@ -42,7 +43,7 @@ Run `apply.sh` for every new repository. It needs the ID of the release bot
 GitHub App, either as `BOT_APP_ID` in the environment or as the organization
 variable of the same name; only that app may create, move or delete `v*` tags.
 
-Every released repository, all except `.github` and `decisions`, gets the
+Every released repository, matched by a glob of `released.json`, gets the
 environment `release`, deployable only from `main` and `release/v*`. The bot's
 private key is the secret `APP_PRIVATE_KEY` of that environment
 ([FY-0021][fy-0021]). Pass the key file to store it, for a new repository or

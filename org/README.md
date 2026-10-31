@@ -14,6 +14,12 @@ applied to every repository by a script.
 | `repository/environments/`   | `apply.sh`    | repos that get each environment |
 | `repository/rulesets/`       | `apply.sh`    | `main`, `release/v*`, `v*` refs |
 
+Only `settings.sh` and `apply.sh` are run. `apply.sh` sources one file per
+concern from `apply/`: `settings.sh`, `labels.sh`, `topics.sh`, `rulesets.sh`,
+`environments.sh` and `security.sh` apply one part each, and `http.sh`,
+`glob.sh` and `contains.sh` are helpers they share. The files under `apply/` are
+not run on their own ([FY-0011][fy-0011]).
+
 ## Usage
 
 Both scripts need [gh](https://cli.github.com/) and [jq](https://jqlang.org/),

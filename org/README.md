@@ -53,6 +53,15 @@ after a rotation:
 BOT_PRIVATE_KEY_FILE=~/flakeyard-bot.pem ./apply.sh atom-shell
 ```
 
+Every repository that pushes to the binary cache, matched by a glob of
+`cached.json`, gets the environment `cache`, deployable from the same branches.
+The push token is the secret `CACHIX_AUTH_TOKEN` of that environment
+([FY-0009][fy-0009]); pass its file the same way:
+
+```sh
+CACHIX_AUTH_TOKEN_FILE=~/flakeyard-cachix.token ./apply.sh atom-shell
+```
+
 ## Not covered
 
 Some settings have no API or depend on external services. They are configured by
@@ -72,8 +81,8 @@ hand, by an organization owner:
   repositories.
 - **Binary cache** ([FY-0019][fy-0019]). Create the public Cachix cache
   `flakeyard` on the open source plan and a push token for it in the Cachix web
-  interface. Store the token as a secret of the environment that FY-0009
-  restricts to `main` and `release/v*`.
+  interface. Store it with `CACHIX_AUTH_TOKEN_FILE=... ./apply.sh` and keep the
+  file outside of any repository.
 - **Container packages** (GHCR). After the first publication of an image, check
   in the package settings that it is public, linked to its repository, and that
   the repository has write access under Manage Actions access.
@@ -86,6 +95,8 @@ hand, by an organization owner:
   Personal access tokens, allow fine-grained tokens with administrator approval
   and a maximum lifetime of 90 days, and restrict classic tokens.
 
+[fy-0009]:
+  https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0009-ci-on-runners.md
 [fy-0011]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0011-settings-as-code.md
 [fy-0019]:

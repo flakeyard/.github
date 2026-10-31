@@ -8,6 +8,8 @@
 # that may create and move release tags is read from $BOT_APP_ID or from the
 # organization variable BOT_APP_ID. When $BOT_PRIVATE_KEY_FILE names its private
 # key, the key is stored in the environment "release" of released repositories.
+# When $CACHIX_AUTH_TOKEN_FILE names the push token of the binary cache, it is
+# stored in the environment "cache" of repositories that push to it.
 set -euo pipefail
 
 org=${ORG:-flakeyard}
@@ -33,11 +35,15 @@ bot_key_file=${BOT_PRIVATE_KEY_FILE:-}
 [[ -z $bot_key_file || -r $bot_key_file ]] \
   || die "cannot read BOT_PRIVATE_KEY_FILE: $bot_key_file"
 
+cache_token_file=${CACHIX_AUTH_TOKEN_FILE:-}
+[[ -z $cache_token_file || -r $cache_token_file ]] \
+  || die "cannot read CACHIX_AUTH_TOKEN_FILE: $cache_token_file"
+
 # Status codes of GitHub API responses.
 readonly http_ok=200 http_conflict=409
 
-# Branches that may deploy to the environment "release".
-readonly release_branches=(main 'release/v*')
+# Branches that may deploy to the environments "release" and "cache".
+readonly deploy_branches=(main 'release/v*')
 
 # http_status PATH: print the HTTP status code of a GET request to PATH.
 http_status() {
@@ -171,16 +177,23 @@ apply_rulesets() {
   done
 }
 
-# is_released REPO: whether REPO matches a glob of released.json.
-is_released() {
-  local repo=$1 status=0
+# matches_glob FILE REPO: whether REPO matches a glob of the JSON list FILE
+# under org/repository.
+matches_glob() {
+  local file=$1 repo=$2 status=0
   jq -e --arg repo "$repo" "$jq_glob"'
     any(.[]; glob as $re | $repo | test($re))
-  ' "$here/repository/released.json" >/dev/null || status=$?
+  ' "$here/repository/$file" >/dev/null || status=$?
   # jq -e exits with 1 for false and above 1 for errors.
-  ((status <= 1)) || die "cannot read released.json"
+  ((status <= 1)) || die "cannot read $file"
   ((status == 0))
 }
+
+# is_released REPO: whether REPO releases, by released.json.
+is_released() { matches_glob released.json "$1"; }
+
+# pushes_to_cache REPO: whether REPO pushes to the binary cache, by cached.json.
+pushes_to_cache() { matches_glob cached.json "$1"; }
 
 # contains WORD LIST...: whether WORD is one of LIST.
 contains() {
@@ -205,47 +218,58 @@ allow_deployment_branches() {
   policies=$(branch_policies "$env")
   while IFS=$'\t' read -r id type name; do
     [[ -n $id ]] || continue
-    if [[ $type == branch ]] && contains "$name" "${release_branches[@]}"; then
+    if [[ $type == branch ]] && contains "$name" "${deploy_branches[@]}"; then
       kept+=("$name")
     else
       gh api --silent -X DELETE "$env/deployment-branch-policies/$id"
     fi
   done <<<"$policies"
-  for branch in "${release_branches[@]}"; do
+  for branch in "${deploy_branches[@]}"; do
     contains "$branch" "${kept[@]}" && continue
     gh api --silent -X POST "$env/deployment-branch-policies" \
       -f name="$branch" -f type=branch
   done
 }
 
-# create_release_environment ENV: create ENV with custom branch policies.
-create_release_environment() {
+# create_deploy_environment ENV: create ENV with custom branch policies.
+create_deploy_environment() {
   local env=$1
   gh api --silent -X PUT "$env" \
     -F 'deployment_branch_policy[protected_branches]=false' \
     -F 'deployment_branch_policy[custom_branch_policies]=true'
 }
 
-# store_bot_key REPO: store the bot key in the environment "release" of REPO
-# when $BOT_PRIVATE_KEY_FILE is given.
-store_bot_key() {
-  local repo=$1
-  [[ -n $bot_key_file ]] || return 0
-  # The name must match the secret declared by the release workflow: an
-  # environment secret reaches a reusable workflow only under the name the
-  # caller passes.
-  gh secret set APP_PRIVATE_KEY --repo "$org/$repo" --env release \
-    <"$bot_key_file"
+# deploy_environment REPO NAME: create the environment NAME of REPO,
+# deployable only from the deploy branches.
+deploy_environment() {
+  local repo=$1 name=$2 env
+  env="repos/$org/$repo/environments/$name"
+  create_deploy_environment "$env"
+  allow_deployment_branches "$env"
 }
 
+# store_secret REPO ENVIRONMENT SECRET FILE: store the contents of FILE as
+# SECRET of ENVIRONMENT, when FILE is given.
+store_secret() {
+  local repo=$1 environment=$2 secret=$3 file=$4
+  [[ -n $file ]] || return 0
+  gh secret set "$secret" --repo "$org/$repo" --env "$environment" <"$file"
+}
+
+# The bot key and the cache token are available only to jobs on the deploy
+# branches. The secret names must match those declared by the workflows: an
+# environment secret reaches a reusable workflow only under the name the
+# caller passes.
 apply_environments() {
-  local repo=$1 env
-  is_released "$repo" || return 0
-  env="repos/$org/$repo/environments/release"
-  # The bot key is available only to jobs on main and release branches.
-  create_release_environment "$env"
-  allow_deployment_branches "$env"
-  store_bot_key "$repo"
+  local repo=$1
+  if is_released "$repo"; then
+    deploy_environment "$repo" release
+    store_secret "$repo" release APP_PRIVATE_KEY "$bot_key_file"
+  fi
+  if pushes_to_cache "$repo"; then
+    deploy_environment "$repo" cache
+    store_secret "$repo" cache CACHIX_AUTH_TOKEN "$cache_token_file"
+  fi
 }
 
 # CodeQL default setup conflicts with an own CodeQL workflow, so it is

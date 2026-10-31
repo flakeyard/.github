@@ -59,28 +59,73 @@ has_commits() {
 }
 
 render_ruleset() {
+  local file=$1
   jq --argjson app "$bot_app_id" \
-    'walk(if . == "@BOT_APP_ID@" then $app else . end)' "$1"
+    'walk(if . == "@BOT_APP_ID@" then $app else . end)' "$file"
 }
 
 apply_settings() {
-  gh api --silent -X PATCH "repos/$org/$1" \
+  local repo=$1
+  gh api --silent -X PATCH "repos/$org/$repo" \
     --input "$here/repository/settings.json"
   # Discussions of the .github repository are the discussions of the whole
   # organization.
-  if [[ $1 == .github ]]; then
-    gh api --silent -X PATCH "repos/$org/$1" -F has_discussions=true
+  if [[ $repo == .github ]]; then
+    gh api --silent -X PATCH "repos/$org/$repo" -F has_discussions=true
   fi
 }
 
-apply_labels() {
-  local repo=$1 name color description
+# Labels are compared as "name<TAB>color<TAB>description" lines.
+
+# current_labels REPO: print every label of REPO.
+current_labels() {
+  local repo=$1
+  gh api --paginate "repos/$org/$repo/labels?per_page=100" \
+    --jq '.[] | [.name, .color, .description // ""] | @tsv'
+}
+
+# wanted_labels: print every label of labels.json.
+wanted_labels() {
   jq -r '.[] | [.name, .color, .description] | @tsv' \
-    "$here/repository/labels.json" \
-    | while IFS=$'\t' read -r name color description; do
-      gh label create "$name" --repo "$org/$repo" --color "$color" \
-        --description "$description" --force >/dev/null
-    done
+    "$here/repository/labels.json"
+}
+
+# create_label REPO LABEL: create the label described by the line LABEL.
+create_label() {
+  local repo=$1 label=$2 name color description
+  IFS=$'\t' read -r name color description <<<"$label"
+  gh api --silent -X POST "repos/$org/$repo/labels" \
+    -f name="$name" -f color="$color" -f description="$description"
+}
+
+# update_label REPO OLD LABEL: make the label named OLD match the line LABEL.
+update_label() {
+  local repo=$1 old=$2 label=$3 path name color description
+  IFS=$'\t' read -r name color description <<<"$label"
+  path=$(jq -rn --arg name "$old" '$name | @uri')
+  gh api --silent -X PATCH "repos/$org/$repo/labels/$path" \
+    -f new_name="$name" -f color="$color" -f description="$description"
+}
+
+apply_labels() {
+  local repo=$1 current wanted label name existing
+  local -A by_name=()
+  current=$(current_labels "$repo")
+  wanted=$(wanted_labels)
+  # GitHub compares label names ignoring case.
+  while IFS= read -r label; do
+    name=${label%%$'\t'*}
+    [[ -n $name ]] && by_name[${name,,}]=$label
+  done <<<"$current"
+  while IFS= read -r label; do
+    name=${label%%$'\t'*}
+    existing=${by_name[${name,,}]-}
+    if [[ -z $existing ]]; then
+      create_label "$repo" "$label"
+    elif [[ $existing != "$label" ]]; then
+      update_label "$repo" "${existing%%$'\t'*}" "$label"
+    fi
+  done <<<"$wanted"
 }
 
 apply_topics() {
@@ -95,25 +140,37 @@ apply_topics() {
     | gh api --silent -X PUT "repos/$org/$repo/topics" --input -
 }
 
+# ruleset_id NAME: print the id of the ruleset NAME from the listing of
+# rulesets on stdin, or nothing.
+ruleset_id() {
+  local name=$1
+  jq -r --arg name "$name" '.[] | select(.name == $name) | .id'
+}
+
+# upsert_ruleset RULESETS FILE ID: replace the ruleset ID of the API path
+# RULESETS with FILE, or create it when ID is empty.
+upsert_ruleset() {
+  local rulesets=$1 file=$2 id=$3
+  if [[ -n $id ]]; then
+    render_ruleset "$file" | gh api --silent -X PUT "$rulesets/$id" --input -
+  else
+    render_ruleset "$file" | gh api --silent -X POST "$rulesets" --input -
+  fi
+}
+
 apply_rulesets() {
-  local repo=$1 existing file name id
-  existing=$(gh api "repos/$org/$repo/rulesets" \
-    --jq '.[] | "\(.name)\t\(.id)"')
+  local repo=$1 rulesets existing file id
+  rulesets="repos/$org/$repo/rulesets"
+  existing=$(gh api "$rulesets")
   for file in "$here"/repository/rulesets/*.json; do
-    name=$(jq -r .name "$file")
-    id=$(awk -F '\t' -v n="$name" '$1 == n { print $2 }' <<<"$existing")
-    if [[ -n $id ]]; then
-      render_ruleset "$file" \
-        | gh api --silent -X PUT "repos/$org/$repo/rulesets/$id" --input -
-    else
-      render_ruleset "$file" \
-        | gh api --silent -X POST "repos/$org/$repo/rulesets" --input -
-    fi
+    id=$(ruleset_id "$(jq -r .name "$file")" <<<"$existing")
+    upsert_ruleset "$rulesets" "$file" "$id"
   done
 }
 
 is_released() {
-  [[ $1 != .github && $1 != decisions ]]
+  local repo=$1
+  [[ $repo != .github && $repo != decisions ]]
 }
 
 # contains WORD LIST...: whether WORD is one of LIST.
@@ -152,22 +209,41 @@ allow_deployment_branches() {
   done
 }
 
+# create_release_environment ENV: create ENV with custom branch policies.
+create_release_environment() {
+  local env=$1
+  gh api --silent -X PUT "$env" \
+    -F 'deployment_branch_policy[protected_branches]=false' \
+    -F 'deployment_branch_policy[custom_branch_policies]=true'
+}
+
+# store_bot_key REPO: store the bot key in the environment "release" of REPO
+# when $BOT_PRIVATE_KEY_FILE is given.
+store_bot_key() {
+  local repo=$1
+  [[ -n $bot_key_file ]] || return 0
+  # The name must match the secret declared by the release workflow: an
+  # environment secret reaches a reusable workflow only under the name the
+  # caller passes.
+  gh secret set APP_PRIVATE_KEY --repo "$org/$repo" --env release \
+    <"$bot_key_file"
+}
+
 apply_environments() {
   local repo=$1 env
   is_released "$repo" || return 0
   env="repos/$org/$repo/environments/release"
   # The bot key is available only to jobs on main and release branches.
-  gh api --silent -X PUT "$env" \
-    -F 'deployment_branch_policy[protected_branches]=false' \
-    -F 'deployment_branch_policy[custom_branch_policies]=true'
+  create_release_environment "$env"
   allow_deployment_branches "$env"
-  if [[ -n $bot_key_file ]]; then
-    # The name must match the secret declared by the release workflow: an
-    # environment secret reaches a reusable workflow only under the name the
-    # caller passes.
-    gh secret set APP_PRIVATE_KEY --repo "$org/$repo" --env release \
-      <"$bot_key_file"
-  fi
+  store_bot_key "$repo"
+}
+
+# CodeQL default setup conflicts with an own CodeQL workflow, so it is
+# enabled only for atoms and actions.
+wants_default_code_scanning() {
+  local repo=$1
+  [[ $repo == atom-* || $repo == action-* ]]
 }
 
 apply_security() {
@@ -175,9 +251,8 @@ apply_security() {
   gh api --silent -X PUT "repos/$org/$repo/vulnerability-alerts"
   gh api --silent -X PUT "repos/$org/$repo/private-vulnerability-reporting"
   gh api --silent -X PUT "repos/$org/$repo/immutable-releases"
-  # CodeQL default setup conflicts with an own CodeQL workflow, so it is
-  # enabled only for atoms and actions, and only once there is a commit.
-  if [[ $repo == atom-* || $repo == action-* ]] && has_commits "$repo"; then
+  # Default setup needs a commit to scan.
+  if wants_default_code_scanning "$repo" && has_commits "$repo"; then
     gh api --silent -X PATCH "repos/$org/$repo/code-scanning/default-setup" \
       -f state=configured
   fi

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Apply organization-wide settings from organization/*.json.
+# Apply organization-wide settings from the JSON files of organization/.
 # Requires gh with a token that has the admin:org scope, and jq.
 #
 # The release bot GitHub App is recorded as organization variables when its
@@ -32,17 +32,17 @@ set_org() {
   printf '%s orgs/%s%s\n' "$1" "$org" "$2"
 }
 
-set_org PATCH "" organization.json
+set_org PATCH "" settings.json
 # The selected actions list is accepted only once the policy is "selected".
-set_org PUT /actions/permissions actions-permissions.json
-set_org PUT /actions/permissions/selected-actions actions-selected.json
-set_org PUT /actions/permissions/workflow actions-workflow.json
+set_org PUT /actions/permissions actions/permissions.json
+set_org PUT /actions/permissions/selected-actions actions/selected.json
+set_org PUT /actions/permissions/workflow actions/workflow.json
 set_org PUT /actions/permissions/fork-pr-contributor-approval \
-  actions-fork-pr-approval.json
+  actions/fork-pr-approval.json
 set_org PUT /actions/permissions/artifact-and-log-retention \
-  actions-retention.json
+  actions/retention.json
 set_org PUT /actions/permissions/self-hosted-runners \
-  actions-self-hosted-runners.json
+  actions/self-hosted-runners.json
 
 for name in "${!patterns[@]}"; do
   if [[ -n ${!name:-} ]]; then

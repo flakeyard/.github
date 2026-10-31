@@ -33,9 +33,29 @@ bot_key_file=${BOT_PRIVATE_KEY_FILE:-}
 [[ -z $bot_key_file || -r $bot_key_file ]] \
   || die "cannot read BOT_PRIVATE_KEY_FILE: $bot_key_file"
 
+# Status codes of GitHub API responses.
+readonly http_ok=200 http_conflict=409
+
+# Branches that may deploy to the environment "release".
+readonly release_branches=(main 'release/v*')
+
+# http_status PATH: print the HTTP status code of a GET request to PATH.
+http_status() {
+  local path=$1 response
+  # gh fails on any status but 2xx; the status line is printed anyway.
+  response=$(gh api -i "$path" 2>/dev/null) || true
+  awk 'NR == 1 { print $2 }' <<<"$response"
+}
+
 has_commits() {
-  # An empty repository answers 409 Conflict.
-  gh api "repos/$org/$1/commits?per_page=1" >/dev/null 2>&1
+  local repo=$1 status
+  status=$(http_status "repos/$org/$repo/commits?per_page=1")
+  case $status in
+    "$http_ok") return 0 ;;
+    # An empty repository answers 409 Conflict.
+    "$http_conflict") return 1 ;;
+    *) die "cannot list commits of $repo: HTTP ${status:-no response}" ;;
+  esac
 }
 
 render_ruleset() {
@@ -64,12 +84,12 @@ apply_labels() {
 }
 
 apply_topics() {
-  local repo=$1 current
-  current=$(gh api "repos/$org/$repo/topics" --jq '.names')
-  # Keys of topics.json are globs; only "*" is special. Existing topics stay.
-  jq --arg repo "$repo" --argjson current "$current" '
+  local repo=$1
+  # Keys of topics.json are globs; only "*" is special. Topics that are not
+  # listed there are drift and are removed.
+  jq --arg repo "$repo" '
     def glob: "^" + (gsub("\\."; "\\.") | gsub("\\*"; ".*")) + "$";
-    {names: ($current + [to_entries[]
+    {names: ([to_entries[]
       | select(.key as $k | $repo | test($k | glob)) | .value[]] | unique)}
   ' "$here/repository/topics.json" \
     | gh api --silent -X PUT "repos/$org/$repo/topics" --input -
@@ -96,21 +116,51 @@ is_released() {
   [[ $1 != .github && $1 != decisions ]]
 }
 
+# contains WORD LIST...: whether WORD is one of LIST.
+contains() {
+  local word=$1 item
+  shift
+  for item; do
+    [[ $item == "$word" ]] && return 0
+  done
+  return 1
+}
+
+# branch_policies ENV: print "id<TAB>type<TAB>name" of every deployment policy.
+branch_policies() {
+  local env=$1
+  gh api --paginate "$env/deployment-branch-policies?per_page=100" \
+    --jq '.branch_policies[] | [.id, .type // "branch", .name] | @tsv'
+}
+
+# allow_deployment_branches ENV: make the release branches the only policies.
+allow_deployment_branches() {
+  local env=$1 policies id type name kept=() branch
+  policies=$(branch_policies "$env")
+  while IFS=$'\t' read -r id type name; do
+    [[ -n $id ]] || continue
+    if [[ $type == branch ]] && contains "$name" "${release_branches[@]}"; then
+      kept+=("$name")
+    else
+      gh api --silent -X DELETE "$env/deployment-branch-policies/$id"
+    fi
+  done <<<"$policies"
+  for branch in "${release_branches[@]}"; do
+    contains "$branch" "${kept[@]}" && continue
+    gh api --silent -X POST "$env/deployment-branch-policies" \
+      -f name="$branch" -f type=branch
+  done
+}
+
 apply_environments() {
-  local repo=$1 env existing branch
+  local repo=$1 env
   is_released "$repo" || return 0
   env="repos/$org/$repo/environments/release"
   # The bot key is available only to jobs on main and release branches.
   gh api --silent -X PUT "$env" \
     -F 'deployment_branch_policy[protected_branches]=false' \
     -F 'deployment_branch_policy[custom_branch_policies]=true'
-  existing=$(gh api "$env/deployment-branch-policies" \
-    --jq '.branch_policies[].name')
-  for branch in main 'release/v*'; do
-    grep -qxF -- "$branch" <<<"$existing" && continue
-    gh api --silent -X POST "$env/deployment-branch-policies" \
-      -f name="$branch" -f type=branch
-  done
+  allow_deployment_branches "$env"
   if [[ -n $bot_key_file ]]; then
     # The name must match the secret declared by the release workflow: an
     # environment secret reaches a reusable workflow only under the name the

@@ -33,6 +33,9 @@ bot_key_file=${BOT_PRIVATE_KEY_FILE:-}
 [[ -z $bot_key_file || -r $bot_key_file ]] \
   || die "cannot read BOT_PRIVATE_KEY_FILE: $bot_key_file"
 
+# Branches that may deploy to the environment "release".
+readonly release_branches=(main 'release/v*')
+
 has_commits() {
   # An empty repository answers 409 Conflict.
   gh api "repos/$org/$1/commits?per_page=1" >/dev/null 2>&1
@@ -96,21 +99,51 @@ is_released() {
   [[ $1 != .github && $1 != decisions ]]
 }
 
+# contains WORD LIST...: whether WORD is one of LIST.
+contains() {
+  local word=$1 item
+  shift
+  for item; do
+    [[ $item == "$word" ]] && return 0
+  done
+  return 1
+}
+
+# branch_policies ENV: print "id<TAB>type<TAB>name" of every deployment policy.
+branch_policies() {
+  local env=$1
+  gh api --paginate "$env/deployment-branch-policies?per_page=100" \
+    --jq '.branch_policies[] | [.id, .type // "branch", .name] | @tsv'
+}
+
+# allow_deployment_branches ENV: make the release branches the only policies.
+allow_deployment_branches() {
+  local env=$1 policies id type name kept=() branch
+  policies=$(branch_policies "$env")
+  while IFS=$'\t' read -r id type name; do
+    [[ -n $id ]] || continue
+    if [[ $type == branch ]] && contains "$name" "${release_branches[@]}"; then
+      kept+=("$name")
+    else
+      gh api --silent -X DELETE "$env/deployment-branch-policies/$id"
+    fi
+  done <<<"$policies"
+  for branch in "${release_branches[@]}"; do
+    contains "$branch" "${kept[@]}" && continue
+    gh api --silent -X POST "$env/deployment-branch-policies" \
+      -f name="$branch" -f type=branch
+  done
+}
+
 apply_environments() {
-  local repo=$1 env existing branch
+  local repo=$1 env
   is_released "$repo" || return 0
   env="repos/$org/$repo/environments/release"
   # The bot key is available only to jobs on main and release branches.
   gh api --silent -X PUT "$env" \
     -F 'deployment_branch_policy[protected_branches]=false' \
     -F 'deployment_branch_policy[custom_branch_policies]=true'
-  existing=$(gh api "$env/deployment-branch-policies" \
-    --jq '.branch_policies[].name')
-  for branch in main 'release/v*'; do
-    grep -qxF -- "$branch" <<<"$existing" && continue
-    gh api --silent -X POST "$env/deployment-branch-policies" \
-      -f name="$branch" -f type=branch
-  done
+  allow_deployment_branches "$env"
   if [[ -n $bot_key_file ]]; then
     # The name must match the secret declared by the release workflow: an
     # environment secret reaches a reusable workflow only under the name the

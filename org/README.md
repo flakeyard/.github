@@ -4,14 +4,15 @@ Settings of the flakeyard organization and its repositories, kept as code.
 GitHub Free has no organization-level rulesets, so repository-level settings are
 applied to every repository by a script.
 
-| Path                       | Applied by    | Scope                           |
-| -------------------------- | ------------- | ------------------------------- |
-| `organization/*.json`      | `settings.sh` | organization, Actions policies  |
-| `repository/settings.json` | `apply.sh`    | merge, secret scanning          |
-| `repository/labels.json`   | `apply.sh`    | issue and PR labels             |
-| `repository/topics.json`   | `apply.sh`    | topics, matched by repo glob    |
-| `repository/released.json` | `apply.sh`    | repos that get `release`        |
-| `repository/rulesets/`     | `apply.sh`    | `main`, `release/v*`, `v*` refs |
+| Path                         | Applied by    | Scope                           |
+| ---------------------------- | ------------- | ------------------------------- |
+| `organization/settings.json` | `settings.sh` | base permissions, members       |
+| `organization/actions/`      | `settings.sh` | Actions policies                |
+| `repository/settings.json`   | `apply.sh`    | merge, secret scanning          |
+| `repository/labels.json`     | `apply.sh`    | issue and PR labels             |
+| `repository/topics.json`     | `apply.sh`    | topics, matched by repo glob    |
+| `repository/environments/`   | `apply.sh`    | repos that get each environment |
+| `repository/rulesets/`       | `apply.sh`    | `main`, `release/v*`, `v*` refs |
 
 ## Usage
 
@@ -43,9 +44,9 @@ Run `apply.sh` for every new repository. It needs the ID of the release bot
 GitHub App, either as `BOT_APP_ID` in the environment or as the organization
 variable of the same name; only that app may create, move or delete `v*` tags.
 
-Every released repository, matched by a glob of `released.json`, gets the
-environment `release`, deployable only from `main` and `release/v*`. The bot's
-private key is the secret `APP_PRIVATE_KEY` of that environment
+Every released repository, matched by a glob of `environments/release.json`,
+gets the environment `release`, deployable only from `main` and `release/v*`.
+The bot's private key is the secret `APP_PRIVATE_KEY` of that environment
 ([FY-0021][fy-0021]). Pass the key file to store it, for a new repository or
 after a rotation:
 
@@ -54,9 +55,9 @@ BOT_PRIVATE_KEY_FILE=~/flakeyard-bot.pem ./apply.sh atom-shell
 ```
 
 Every repository that pushes to the binary cache, matched by a glob of
-`cached.json`, gets the environment `cache`, deployable from the same branches.
-The push token is the secret `CACHIX_AUTH_TOKEN` of that environment
-([FY-0009][fy-0009]); pass its file the same way:
+`environments/cache.json`, gets the environment `cache`, deployable from the
+same branches. The push token is the secret `CACHIX_AUTH_TOKEN` of that
+environment ([FY-0009][fy-0009]); pass its file the same way:
 
 ```sh
 CACHIX_AUTH_TOKEN_FILE=~/flakeyard-cachix.token ./apply.sh atom-shell

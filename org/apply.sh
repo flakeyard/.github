@@ -189,11 +189,12 @@ matches_glob() {
   ((status == 0))
 }
 
-# is_released REPO: whether REPO releases, by released.json.
-is_released() { matches_glob released.json "$1"; }
+# is_released REPO: whether REPO releases, by environments/release.json.
+is_released() { matches_glob environments/release.json "$1"; }
 
-# pushes_to_cache REPO: whether REPO pushes to the binary cache, by cached.json.
-pushes_to_cache() { matches_glob cached.json "$1"; }
+# pushes_to_cache REPO: whether REPO pushes to the binary cache, by
+# environments/cache.json.
+pushes_to_cache() { matches_glob environments/cache.json "$1"; }
 
 # contains WORD LIST...: whether WORD is one of LIST.
 contains() {

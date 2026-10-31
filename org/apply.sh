@@ -84,12 +84,12 @@ apply_labels() {
 }
 
 apply_topics() {
-  local repo=$1 current
-  current=$(gh api "repos/$org/$repo/topics" --jq '.names')
-  # Keys of topics.json are globs; only "*" is special. Existing topics stay.
-  jq --arg repo "$repo" --argjson current "$current" '
+  local repo=$1
+  # Keys of topics.json are globs; only "*" is special. Topics that are not
+  # listed there are drift and are removed.
+  jq --arg repo "$repo" '
     def glob: "^" + (gsub("\\."; "\\.") | gsub("\\*"; ".*")) + "$";
-    {names: ($current + [to_entries[]
+    {names: ([to_entries[]
       | select(.key as $k | $repo | test($k | glob)) | .value[]] | unique)}
   ' "$here/repository/topics.json" \
     | gh api --silent -X PUT "repos/$org/$repo/topics" --input -

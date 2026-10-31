@@ -1,0 +1,15 @@
+version = 1
+
+[[annotations]]
+path = "**"
+SPDX-FileCopyrightText = "2026 Alexander Antipov"
+SPDX-License-Identifier = "MIT"
+
+# Adapted from the Contributor Covenant 2.1, which keeps its license.
+[[annotations]]
+path = "CODE_OF_CONDUCT.md"
+SPDX-FileCopyrightText = [
+  "2014 Coraline Ada Ehmke and the Contributor Covenant contributors",
+  "2026 Alexander Antipov",
+]
+SPDX-License-Identifier = "CC-BY-4.0"

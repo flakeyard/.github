@@ -33,12 +33,29 @@ bot_key_file=${BOT_PRIVATE_KEY_FILE:-}
 [[ -z $bot_key_file || -r $bot_key_file ]] \
   || die "cannot read BOT_PRIVATE_KEY_FILE: $bot_key_file"
 
+# Status codes of GitHub API responses.
+readonly http_ok=200 http_conflict=409
+
 # Branches that may deploy to the environment "release".
 readonly release_branches=(main 'release/v*')
 
+# http_status PATH: print the HTTP status code of a GET request to PATH.
+http_status() {
+  local path=$1 response
+  # gh fails on any status but 2xx; the status line is printed anyway.
+  response=$(gh api -i "$path" 2>/dev/null) || true
+  awk 'NR == 1 { print $2 }' <<<"$response"
+}
+
 has_commits() {
-  # An empty repository answers 409 Conflict.
-  gh api "repos/$org/$1/commits?per_page=1" >/dev/null 2>&1
+  local repo=$1 status
+  status=$(http_status "repos/$org/$repo/commits?per_page=1")
+  case $status in
+    "$http_ok") return 0 ;;
+    # An empty repository answers 409 Conflict.
+    "$http_conflict") return 1 ;;
+    *) die "cannot list commits of $repo: HTTP ${status:-no response}" ;;
+  esac
 }
 
 render_ruleset() {

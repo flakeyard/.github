@@ -58,6 +58,10 @@ has_commits() {
   esac
 }
 
+# A jq function that turns a glob of repository names into a regex; only "*"
+# is special.
+readonly jq_glob='def glob: "^" + (gsub("\\."; "\\.") | gsub("\\*"; ".*")) + "$";'
+
 render_ruleset() {
   local file=$1
   jq --argjson app "$bot_app_id" \
@@ -130,10 +134,9 @@ apply_labels() {
 
 apply_topics() {
   local repo=$1
-  # Keys of topics.json are globs; only "*" is special. Topics that are not
-  # listed there are drift and are removed.
-  jq --arg repo "$repo" '
-    def glob: "^" + (gsub("\\."; "\\.") | gsub("\\*"; ".*")) + "$";
+  # Keys of topics.json are globs. Topics that are not listed there are drift
+  # and are removed.
+  jq --arg repo "$repo" "$jq_glob"'
     {names: ([to_entries[]
       | select(.key as $k | $repo | test($k | glob)) | .value[]] | unique)}
   ' "$here/repository/topics.json" \
@@ -168,9 +171,15 @@ apply_rulesets() {
   done
 }
 
+# is_released REPO: whether REPO matches a glob of released.json.
 is_released() {
-  local repo=$1
-  [[ $repo != .github && $repo != decisions ]]
+  local repo=$1 status=0
+  jq -e --arg repo "$repo" "$jq_glob"'
+    any(.[]; glob as $re | $repo | test($re))
+  ' "$here/repository/released.json" >/dev/null || status=$?
+  # jq -e exits with 1 for false and above 1 for errors.
+  ((status <= 1)) || die "cannot read released.json"
+  ((status == 0))
 }
 
 # contains WORD LIST...: whether WORD is one of LIST.

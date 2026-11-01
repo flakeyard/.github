@@ -17,8 +17,9 @@ applied to every repository by a script.
 Only `settings.sh` and `apply.sh` are run. `apply.sh` sources one file per
 concern from `apply/`: `settings.sh`, `labels.sh`, `topics.sh`, `rulesets.sh`,
 `environments.sh` and `security.sh` apply one part each, and `http.sh`,
-`glob.sh` and `contains.sh` are helpers they share. The files under `apply/` are
-not run on their own ([FY-0011][fy-0011]).
+`glob.sh` and `contains.sh` are helpers they share. `settings.sh` sources
+`settings/installations.sh`, which checks the installed GitHub Apps. The files
+under `apply/` and `settings/` are not run on their own ([FY-0011][fy-0011]).
 
 ## Usage
 
@@ -45,6 +46,16 @@ organization variables `BOT_APP_ID` and `BOT_CLIENT_ID` when they are given:
 ```sh
 BOT_APP_ID=5414823 BOT_CLIENT_ID=Iv23... ./settings.sh
 ```
+
+Last, `settings.sh` checks that every GitHub App of
+`organization/installations.json` is installed on the organization for the
+listed repositories, and that no other App is installed. The permissions listed
+there are a ceiling: an App that holds a permission not listed, or a higher
+level of one, is drift. A lower or missing permission is not, so the check does
+not break when an App asks for less. An App that asks for more needs the owner's
+approval on GitHub, and then a pull request that lists the new permission. The
+check changes nothing and runs after every setting is applied: it prints every
+difference and then fails.
 
 Run `apply.sh` for every new repository. It needs the ID of the release bot
 GitHub App, either as `BOT_APP_ID` in the environment or as the organization
@@ -100,15 +111,18 @@ hand, by an organization owner:
 - **Release GitHub App** ([FY-0021][fy-0021]). In Settings → Developer settings
   → GitHub Apps, create `flakeyard-bot` without a webhook, with the repository
   permissions listed in FY-0021 and no organization permissions, installable
-  only on this account. Install it on all repositories. Record its identifiers
-  with `BOT_APP_ID=... BOT_CLIENT_ID=... ./settings.sh`.
+  only on this account. Install it on all repositories; `settings.sh` checks the
+  installation. Record its identifiers with
+  `BOT_APP_ID=... BOT_CLIENT_ID=... ./settings.sh`.
 - **Private keys of the release App.** Generate a key on the App's page, store
   it with `BOT_PRIVATE_KEY_FILE=... ./apply.sh` and keep the file outside of any
   repository. Rotate it once a year and at once when it may have been exposed:
   generate a new key, store it in every released repository, then delete the old
   key on the App's page.
-- **Renovate.** Install the Mend Renovate app on the organization for all
-  repositories.
+- **Renovate.** Install the Mend Renovate app from [its page][renovate-app] on
+  the organization for all repositories, and choose its mode for the
+  organization in the [Mend Developer Portal][mend-portal]. `settings.sh` checks
+  the installation and its permissions, not the mode.
 - **Binary cache** ([FY-0019][fy-0019]). Create the public Cachix cache
   `flakeyard` on the open source plan and a push token for it in the Cachix web
   interface. Store it with `CACHIX_AUTH_TOKEN_FILE=... ./apply.sh` and keep the
@@ -125,6 +139,8 @@ hand, by an organization owner:
   Personal access tokens, allow fine-grained tokens with administrator approval
   and a maximum lifetime of 90 days, and restrict classic tokens.
 
+[mend-portal]: https://developer.mend.io/
+[renovate-app]: https://github.com/apps/renovate
 [fy-0009]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0009-ci-on-runners.md
 [fy-0011]:

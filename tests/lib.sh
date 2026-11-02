@@ -18,6 +18,14 @@ fixture() {
   cat >"$GH_FIXTURES/${key//\//_}.json"
 }
 
+# fixture_status METHOD PATH STATUS: make the stub answer METHOD PATH with the
+# HTTP status STATUS.
+fixture_status() {
+  local method=$1 path=$2 status=$3 key
+  key="$method $path"
+  printf '%s\n' "$status" >"$GH_FIXTURES/${key//\//_}.status"
+}
+
 clear_fixtures() { rm -f -- "$GH_FIXTURES"/*; }
 
 # run_org SCRIPT ARG...: run org/SCRIPT with the stub. Its output is in

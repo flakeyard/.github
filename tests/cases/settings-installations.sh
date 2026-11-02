@@ -55,7 +55,7 @@ check "drift: a missing permission is fine" \
 check "drift: unlisted App" printed 'stranger: installed, but not listed'
 check "drift: no success" not_printed 'checked'
 
-echo 500 >"$GH_FIXTURES/GET ${installations//\//_}.status"
+fixture_status GET "$installations" 500
 run_org settings.sh
 check "listing fails: exits non-zero" not exited 0
 check "listing fails: no success" not_printed 'checked'

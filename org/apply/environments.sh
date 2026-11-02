@@ -6,9 +6,6 @@
 # Branches that may deploy to the environments "release" and "cache".
 readonly deploy_branches=(main 'release/v*')
 
-# is_released REPO: whether REPO releases, by environments/release.json.
-is_released() { matches_glob environments/release.json "$1"; }
-
 # pushes_to_cache REPO: whether REPO pushes to the binary cache, by
 # environments/cache.json.
 pushes_to_cache() { matches_glob environments/cache.json "$1"; }
@@ -55,12 +52,14 @@ environment_reviewers() {
 # create_deploy_environment ENV REVIEWERS: create ENV with custom branch
 # policies and the JSON list REVIEWERS, which replaces the reviewers it had.
 # Self-review stays allowed: a reviewer approves the runs that their own
-# merges start.
+# merges start. Admins may not bypass the rules: a waiting job runs only after
+# a reviewer approves it, and only on a deploy branch.
 create_deploy_environment() {
   local env=$1 reviewers=$2
   jq -n --argjson reviewers "$reviewers" '{
     reviewers: $reviewers,
     prevent_self_review: false,
+    can_admins_bypass: false,
     deployment_branch_policy:
       {protected_branches: false, custom_branch_policies: true}
   }' | gh api --silent -X PUT "$env" --input -

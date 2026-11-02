@@ -73,9 +73,10 @@ the bot grants nothing, since the ruleset `main` requires no approving review.
 
 A repository can turn the flag on only when the organization allows it, and
 GitHub answers HTTP 409 otherwise ([API][workflow-api]), so
-`organization/actions/workflow.json` allows it. GitHub copies that value only
-into repositories created later, so the flag of each repository is set by
-`apply.sh`. Run `settings.sh` before `apply.sh` when the flag changes.
+`organization/actions/workflow.json` allows it. The organization value applies
+to every repository that does not set its own, so when `settings.sh` changes it,
+run `apply.sh` for all repositories right after, to turn the flag off where it
+must be off.
 
 Every released repository, matched by a glob of `environments/release.json`,
 gets the environment `release`, deployable only from `main` and `release/v*`.

@@ -46,8 +46,8 @@ set_org PATCH "" settings.json
 set_org PUT /actions/permissions actions/permissions.json
 set_org PUT /actions/permissions/selected-actions actions/selected.json
 # A repository may let GITHUB_TOKEN create pull requests only when the
-# organization allows it. The value reaches only repositories created later;
-# apply.sh sets it in each repository.
+# organization allows it. The value applies to every repository that does not
+# set its own, so run apply.sh right after a change to turn it off there.
 set_org PUT /actions/permissions/workflow actions/workflow.json
 set_org PUT /actions/permissions/fork-pr-contributor-approval \
   actions/fork-pr-approval.json

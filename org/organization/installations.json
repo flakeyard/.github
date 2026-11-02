@@ -1,0 +1,30 @@
+[
+  {
+    "app_slug": "flakeyard-bot",
+    "repository_selection": "all",
+    "permissions": {
+      "contents": "write",
+      "issues": "write",
+      "metadata": "read",
+      "pull_requests": "write",
+      "workflows": "write"
+    }
+  },
+  {
+    "app_slug": "renovate",
+    "repository_selection": "all",
+    "permissions": {
+      "administration": "read",
+      "checks": "write",
+      "contents": "write",
+      "issues": "write",
+      "members": "read",
+      "metadata": "read",
+      "packages": "read",
+      "pull_requests": "write",
+      "statuses": "write",
+      "vulnerability_alerts": "read",
+      "workflows": "write"
+    }
+  }
+]

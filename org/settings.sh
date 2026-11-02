@@ -4,9 +4,15 @@
 #
 # The release bot GitHub App is recorded as organization variables when its
 # identifiers are given: BOT_APP_ID (numeric) and BOT_CLIENT_ID.
+#
+# Last, the installations of GitHub Apps are checked against
+# organization/installations.json. The check runs after every setting is
+# applied, so drift of an App blocks none of them; the script then fails.
+# shellcheck source-path=SCRIPTDIR
 set -euo pipefail
 
 org=${ORG:-flakeyard}
+here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 
 die() {
   printf '%s\n' "$*" >&2
@@ -24,7 +30,10 @@ for name in "${!patterns[@]}"; do
     || die "$name has an unexpected format: ${!name}"
 done
 
-cd -- "$(dirname -- "${BASH_SOURCE[0]}")/organization"
+# shellcheck source=settings/installations.sh
+source "$here/settings/installations.sh"
+
+cd -- "$here/organization"
 
 # set_org METHOD PATH FILE: send FILE to orgs/$org/PATH.
 set_org() {
@@ -50,3 +59,5 @@ for name in "${!patterns[@]}"; do
     printf 'variable %s\n' "$name"
   fi
 done
+
+check_installations

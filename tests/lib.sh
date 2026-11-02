@@ -18,6 +18,8 @@ fixture() {
   cat >"$GH_FIXTURES/${key//\//_}.json"
 }
 
+clear_fixtures() { rm -f -- "$GH_FIXTURES"/*; }
+
 # run_org SCRIPT ARG...: run org/SCRIPT with the stub. Its output is in
 # $output and its exit status in $status.
 run_org() {
@@ -61,6 +63,11 @@ exited() { ((status == $1)); }
 
 # printed TEXT: whether the output of the last run contains TEXT.
 printed() { grep -qF -- "$1" "$output"; }
+
+not_printed() { ! printed "$1"; }
+
+# not COMMAND...: whether COMMAND fails.
+not() { ! "$@"; }
 
 # finish: print the number of failures and succeed only without any.
 finish() {

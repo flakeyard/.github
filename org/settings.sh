@@ -45,6 +45,9 @@ set_org PATCH "" settings.json
 # The selected actions list is accepted only once the policy is "selected".
 set_org PUT /actions/permissions actions/permissions.json
 set_org PUT /actions/permissions/selected-actions actions/selected.json
+# A repository may let GITHUB_TOKEN create pull requests only when the
+# organization allows it. The value reaches only repositories created later;
+# apply.sh sets it in each repository.
 set_org PUT /actions/permissions/workflow actions/workflow.json
 set_org PUT /actions/permissions/fork-pr-contributor-approval \
   actions/fork-pr-approval.json

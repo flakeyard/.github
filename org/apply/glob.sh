@@ -17,3 +17,6 @@ matches_glob() {
   ((status <= 1)) || die "cannot read $file"
   ((status == 0))
 }
+
+# is_released REPO: whether REPO releases, by environments/release.json.
+is_released() { matches_glob environments/release.json "$1"; }

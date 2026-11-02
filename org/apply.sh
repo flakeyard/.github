@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Apply repository settings, labels, topics, rulesets and security features.
+# Apply repository settings, Actions permissions, labels, topics, rulesets,
+# environments and security features.
 #
 # Usage: apply.sh [repo...]
 #   Without arguments, applies to every non-archived repository of $ORG.
@@ -49,6 +50,8 @@ source "$here/apply/glob.sh"
 source "$here/apply/contains.sh"
 # shellcheck source=apply/settings.sh
 source "$here/apply/settings.sh"
+# shellcheck source=apply/actions.sh
+source "$here/apply/actions.sh"
 # shellcheck source=apply/labels.sh
 source "$here/apply/labels.sh"
 # shellcheck source=apply/topics.sh
@@ -71,6 +74,7 @@ fi
 
 for repo in "${repos[@]}"; do
   apply_settings "$repo"
+  apply_actions "$repo"
   apply_labels "$repo"
   apply_topics "$repo"
   apply_rulesets "$repo"

@@ -1,7 +1,7 @@
 # shellcheck shell=bash disable=SC2154 # globals of apply.sh
-# Environments of a repository and their secrets, from
-# repository/environments/, matched with glob.sh. Sourced by apply.sh, which
-# sets org, bot_key_file and cache_token_file.
+# Environments of a repository, their required reviewers and their secrets,
+# from repository/environments/, matched with glob.sh. Sourced by apply.sh,
+# which sets org, here, bot_key_file and cache_token_file.
 
 # Branches that may deploy to the environments "release" and "cache".
 readonly deploy_branches=(main 'release/v*')
@@ -39,20 +39,40 @@ allow_deployment_branches() {
   done
 }
 
-# create_deploy_environment ENV: create ENV with custom branch policies.
+# environment_reviewers NAME: print the required reviewers of the environment
+# NAME as the JSON list of the API, from environments/NAME-reviewers.json. An
+# environment without that file has no reviewers.
+environment_reviewers() {
+  local name=$1 file
+  file="$here/repository/environments/$name-reviewers.json"
+  if [[ -e $file ]]; then
+    jq -c 'map({type, id})' "$file"
+  else
+    printf '[]\n'
+  fi
+}
+
+# create_deploy_environment ENV REVIEWERS: create ENV with custom branch
+# policies and the JSON list REVIEWERS, which replaces the reviewers it had.
+# Self-review stays allowed: a reviewer approves the runs that their own
+# merges start.
 create_deploy_environment() {
-  local env=$1
-  gh api --silent -X PUT "$env" \
-    -F 'deployment_branch_policy[protected_branches]=false' \
-    -F 'deployment_branch_policy[custom_branch_policies]=true'
+  local env=$1 reviewers=$2
+  jq -n --argjson reviewers "$reviewers" '{
+    reviewers: $reviewers,
+    prevent_self_review: false,
+    deployment_branch_policy:
+      {protected_branches: false, custom_branch_policies: true}
+  }' | gh api --silent -X PUT "$env" --input -
 }
 
 # deploy_environment REPO NAME: create the environment NAME of REPO,
-# deployable only from the deploy branches.
+# deployable only from the deploy branches, with its reviewers.
 deploy_environment() {
-  local repo=$1 name=$2 env
+  local repo=$1 name=$2 env reviewers
   env="repos/$org/$repo/environments/$name"
-  create_deploy_environment "$env"
+  reviewers=$(environment_reviewers "$name")
+  create_deploy_environment "$env" "$reviewers"
   allow_deployment_branches "$env"
 }
 
@@ -65,9 +85,9 @@ store_secret() {
 }
 
 # The bot key and the cache token are available only to jobs on the deploy
-# branches. The secret names must match those declared by the workflows: an
-# environment secret reaches a reusable workflow only under the name the
-# caller passes.
+# branches, and the bot key only after a reviewer approves the job. The secret
+# names must match those declared by the workflows: an environment secret
+# reaches a reusable workflow only under the name the caller passes.
 apply_environments() {
   local repo=$1
   if is_released "$repo"; then

@@ -11,7 +11,7 @@ applied to every repository by a script.
 | `repository/settings.json`   | `apply.sh`    | merge, secret scanning          |
 | `repository/labels.json`     | `apply.sh`    | issue and PR labels             |
 | `repository/topics.json`     | `apply.sh`    | topics, matched by repo glob    |
-| `repository/environments/`   | `apply.sh`    | repos that get each environment |
+| `repository/environments/`   | `apply.sh`    | repos and reviewers of each env |
 | `repository/rulesets/`       | `apply.sh`    | `main`, `release/v*`, `v*` refs |
 
 Only `settings.sh` and `apply.sh` are run. `apply.sh` sources one file per
@@ -60,6 +60,14 @@ after a rotation:
 BOT_PRIVATE_KEY_FILE=~/flakeyard-bot.pem ./apply.sh atom-shell
 ```
 
+Every job of `release` waits until a required reviewer approves it, so no
+release, tag or release pull request is made without the owner, even when a
+compromised app merges a pull request into `main`. The reviewers are the users
+of `environments/release-reviewers.json`, by user ID; the login there is only
+for readers. `apply.sh` replaces the reviewers of the environment with that
+list. Self-review stays allowed: the owner merges the release pull requests, and
+the run that the merge starts waits for their own approval.
+
 Every repository that pushes to the binary cache, matched by a glob of
 `environments/cache.json`, gets the environment `cache`, deployable from the
 same branches. The push token is the secret `CACHIX_AUTH_TOKEN` of that
@@ -67,6 +75,21 @@ environment ([FY-0009][fy-0009]); pass its file the same way:
 
 ```sh
 CACHIX_AUTH_TOKEN_FILE=~/flakeyard-cachix.token ./apply.sh atom-shell
+```
+
+The environment `cache` has no reviewers, and `apply.sh` removes any that were
+added by hand. Its push job runs on every push to `main`, and an approval of
+each push would hold up every merge. The push token stays protected only by the
+deploy branches, the risk that [FY-0019][fy-0019] accepts; a release still waits
+for the reviewer of `release`.
+
+## Tests
+
+The tests run the scripts of `org/` against a stub of `gh` that answers from
+fixtures and logs the calls, so they need neither a token nor the network:
+
+```sh
+../tests/run.sh
 ```
 
 ## Not covered

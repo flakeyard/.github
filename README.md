@@ -17,6 +17,8 @@ yet. Until their providers are released:
   before every pull request (provider: `workflow-check` and the atoms);
 - pull request titles are checked by the reviewer (provider: `workflow-check`);
 - rulesets require no status checks (provider: `workflow-check`);
+- CI does not check that the tag of the preset in `renovate.json` belongs to an
+  immutable release ([FY-0028][fy-0028]) (provider: `workflow-check`);
 - OpenSSF Scorecard is not run (provider: `workflow-check`).
 
 ## License
@@ -27,3 +29,5 @@ every file is declared in [REUSE.toml](REUSE.toml).
 
 [fy-0022]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0022-bootstrap.md
+[fy-0028]:
+  https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0028-supply-chain.md

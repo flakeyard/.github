@@ -4,16 +4,16 @@ Settings of the flakeyard organization and its repositories, kept as code.
 GitHub Free has no organization-level rulesets, so repository-level settings are
 applied to every repository by a script.
 
-| Path                         | Applied by    | Scope                           |
-| ---------------------------- | ------------- | ------------------------------- |
-| `organization/settings.json` | `settings.sh` | base permissions, members       |
-| `organization/actions/`      | `settings.sh` | Actions policies                |
-| `repository/settings.json`   | `apply.sh`    | merge, secret scanning          |
-| `repository/actions/`        | `apply.sh`    | permissions of `GITHUB_TOKEN`   |
-| `repository/labels.json`     | `apply.sh`    | issue and PR labels             |
-| `repository/topics.json`     | `apply.sh`    | topics, matched by repo glob    |
-| `repository/environments/`   | `apply.sh`    | repos and reviewers of each env |
-| `repository/rulesets/`       | `apply.sh`    | `main`, `release/v*`, `v*` refs |
+| Path                         | Applied by    | Scope                         |
+| ---------------------------- | ------------- | ----------------------------- |
+| `organization/settings.json` | `settings.sh` | base permissions, members     |
+| `organization/actions/`      | `settings.sh` | Actions policies              |
+| `repository/settings.json`   | `apply.sh`    | merge, secret scanning        |
+| `repository/actions/`        | `apply.sh`    | permissions of `GITHUB_TOKEN` |
+| `repository/labels.json`     | `apply.sh`    | issue and PR labels           |
+| `repository/topics.json`     | `apply.sh`    | topics, matched by repo glob  |
+| `repository/environments/`   | `apply.sh`    | environments and reviewers    |
+| `repository/rulesets/`       | `apply.sh`    | branch and tag protection     |
 
 Only `settings.sh` and `apply.sh` are run. `apply.sh` sources one file per
 concern from `apply/`: `settings.sh`, `actions.sh`, `labels.sh`, `topics.sh`,
@@ -85,7 +85,7 @@ must be off.
 Every released repository, matched by a glob of `environments/release.json`,
 gets the environment `release`, deployable only from `main` and `release/v*`.
 The bot's private key is the secret `APP_PRIVATE_KEY` of that environment
-([FY-0021][fy-0021]). Pass the key file to store it, for a new repository or
+([FY-0030][fy-0030]). Pass the key file to store it, for a new repository or
 after a rotation:
 
 ```sh
@@ -104,16 +104,6 @@ Admins cannot bypass the rules of `release` and `cache`. A waiting job starts
 only after a required reviewer approves it, and only on a deploy branch, even
 for an organization owner. The owner still approves their runs as the reviewer;
 they lose only the option to start a job without a review.
-
-Until a repository calls `workflow-release` v0.2.0, both the release job and the
-pull request job of that workflow use `release`, so with the reviewer every
-merge waits for two approvals. `apply.sh` sets the reviewer on every released
-repository regardless ([FY-0029][fy-0029]): a missing reviewer is a gap in the
-protection of the bot key, a second approval only a delay. Run `apply.sh` for a
-released repository right before merging the pull request that moves it to
-v0.2.0, which needs the flag above to open its release pull request. In
-`workflow-release`, which calls its own workflow, run it before merging that
-change.
 
 Every repository that pushes to the binary cache, matched by a glob of
 `environments/cache.json`, gets the environment `cache`, deployable from the
@@ -146,9 +136,9 @@ fixtures and logs the calls, so they need neither a token nor the network:
 Some settings have no API or depend on external services. They are configured by
 hand, by an organization owner:
 
-- **Release GitHub App** ([FY-0021][fy-0021]). In Settings → Developer settings
+- **Release GitHub App** ([FY-0030][fy-0030]). In Settings → Developer settings
   → GitHub Apps, create `flakeyard-bot` without a webhook, with the repository
-  permissions listed in FY-0021 and no organization permissions, installable
+  permissions listed in FY-0030 and no organization permissions, installable
   only on this account. Install it on all repositories; `settings.sh` checks the
   installation. Record its identifiers with
   `BOT_APP_ID=... BOT_CLIENT_ID=... ./settings.sh`.
@@ -174,8 +164,9 @@ hand, by an organization owner:
 - **Code security configurations.** Not used: `apply.sh` enables the same
   features in every repository, and a configuration attached to a repository
   would override them. In Settings → Code security → Configurations, keep no
-  configuration attached to repositories and none as the default for new
-  repositories.
+  configuration: delete any that exists, even one attached to no repository.
+  Attaching an enforced configuration takes one click and overrides `apply.sh`
+  in every repository it is attached to.
 - **Personal access token policy.** GitHub offers no API for it. In Settings →
   Personal access tokens, allow fine-grained tokens with administrator approval
   and a maximum lifetime of 90 days, and restrict classic tokens.
@@ -188,9 +179,9 @@ hand, by an organization owner:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0011-settings-as-code.md
 [fy-0019]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0019-binary-cache.md
-[fy-0021]:
-  https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0021-release-bot.md
 [fy-0029]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0029-renovate-mend.md
+[fy-0030]:
+  https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0030-actions-workflows-and-release-bot.md
 [workflow-api]:
   https://docs.github.com/en/rest/actions/permissions#set-default-workflow-permissions-for-a-repository

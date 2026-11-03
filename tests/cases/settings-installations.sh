@@ -55,6 +55,14 @@ check "drift: a missing permission is fine" \
 check "drift: unlisted App" printed 'stranger: installed, but not listed'
 check "drift: no success" not_printed 'checked'
 
+# The release bot changes no workflow files until template updates exist.
+installed 'map(if .app_slug == "flakeyard-bot"
+  then .permissions.workflows = "write" else . end)'
+run_org settings.sh
+check "bot workflows: exits 1" exited 1
+check "bot workflows: reported" \
+  printed 'flakeyard-bot: permission workflows is write, allowed none'
+
 installed 'map(if .app_slug == "renovate"
   then . + {suspended_at: "2026-11-01T00:00:00Z"} else . end)'
 run_org settings.sh

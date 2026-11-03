@@ -15,13 +15,13 @@ applied to every repository by a script.
 | `repository/environments/`   | `apply.sh`    | environments and reviewers    |
 | `repository/rulesets/`       | `apply.sh`    | branch and tag protection     |
 
-Only `settings.sh` and `apply.sh` are run. `apply.sh` sources one file per
-concern from `apply/`: `settings.sh`, `actions.sh`, `labels.sh`, `topics.sh`,
-`rulesets.sh`, `environments.sh` and `security.sh` apply one part each, and
-`http.sh`, `glob.sh` and `contains.sh` are helpers they share. `settings.sh`
-sources `settings/installations.sh`, which checks the installed GitHub Apps. The
-files under `apply/` and `settings/` are not run on their own
-([FY-0011][fy-0011]).
+Only `settings.sh`, `apply.sh` and `audit/releases.sh` are run, the last by the
+workflow `audit` too. `apply.sh` sources one file per concern from `apply/`:
+`settings.sh`, `actions.sh`, `labels.sh`, `topics.sh`, `rulesets.sh`,
+`environments.sh` and `security.sh` apply one part each, and `http.sh`,
+`glob.sh` and `contains.sh` are helpers they share. `settings.sh` sources
+`settings/installations.sh`, which checks the installed GitHub Apps. The files
+under `apply/` and `settings/` are not run on their own ([FY-0011][fy-0011]).
 
 ## Usage
 
@@ -85,12 +85,8 @@ must be off.
 Every released repository, matched by a glob of `environments/release.json`,
 gets the environment `release`, deployable only from `main` and `release/v*`.
 The bot's private key is the secret `APP_PRIVATE_KEY` of that environment
-([FY-0030][fy-0030]). Pass the key file to store it, for a new repository or
-after a rotation:
-
-```sh
-BOT_PRIVATE_KEY_FILE=~/flakeyard-bot.pem ./apply.sh atom-shell
-```
+([FY-0030][fy-0030]). No copy of the key is kept; a new released repository gets
+it by a rotation, see [Release bot key](#release-bot-key).
 
 Every job of `release` waits until a required reviewer approves it, so no
 release, tag or release pull request is made without the owner, even when a
@@ -130,6 +126,65 @@ each push would hold up every merge. The push token stays protected only by the
 deploy branches, the risk that [FY-0019][fy-0019] accepts; a release still waits
 for the reviewer of `release`.
 
+## Release bot key
+
+The private key of `flakeyard-bot` exists only as the secret `APP_PRIVATE_KEY`
+of the environment `release`, and no copy is kept on the owner's machine. A
+secret cannot be read back, so storing the key always means a new key, for a new
+released repository, for the yearly rotation and after a leak alike:
+
+1. On the App's page, in Settings → Developer settings → GitHub Apps, generate a
+   new private key. The browser downloads it as a `.pem` file.
+2. Store it in every released repository. Run `apply.sh` without arguments, so
+   that no repository keeps the older key:
+
+   ```sh
+   BOT_PRIVATE_KEY_FILE=~/Downloads/flakeyard-bot.pem ./apply.sh
+   ```
+
+3. Delete the file.
+4. On the App's page, delete every older key. Only the new one is left.
+
+### Leaked key
+
+When the key may have been exposed:
+
+1. Delete the key on the App's page. No new token can be made with it; tokens
+   made before expire within an hour.
+2. Store a new key as above.
+3. Run the [release audit](#release-audit) and look at every mismatch it
+   reports.
+4. Review every tag `v*` and every release created since the key may have been
+   exposed, also those the audit passes. A tag `vX` must point to the commit of
+   the newest genuine `vX.Y.Z`; the audit does not check it.
+5. Delete each forged release and its tag, and move each forged `vX` back. Only
+   the App may change tags `v*`, so turn off the ruleset `release-tags` of that
+   repository for the change; the next `apply.sh` turns it back on. Never reuse
+   the version of a forged release: consumers may have pinned it.
+6. Publish a security advisory in every affected repository. It names the forged
+   versions and their commits, the period of the exposure, and the versions to
+   move to.
+
+## Release audit
+
+The workflow `audit` of this repository runs `audit/releases.sh` every Monday
+and on dispatch. For every release `vX.Y.Z` of every non-archived repository, it
+checks that `flakeyard-bot` made it, and that its tag points to the merge commit
+of a release pull request ([FY-0007][fy-0007], [FY-0030][fy-0030]): one from the
+branch `release-please--branches--<base>` of the same repository, merged into
+`<base>`, which is `main` or `release/vN` with `N >= 1`, and labelled
+`autorelease: tagged`. It reports every mismatch as an error and then fails. A
+failed run is the alert; follow [Leaked key](#leaked-key).
+
+The job reads with `GITHUB_TOKEN`, since every repository is public. It checks
+the organization, not a commit, so it is not a check workflow: it posts no
+commit status, and no ruleset requires it. It does not check tags `vX`, images
+or releases that were deleted. To run it locally or for some repositories:
+
+```sh
+BOT_LOGIN='flakeyard-bot[bot]' ./audit/releases.sh atom-shell
+```
+
 ## Tests
 
 The tests run the scripts of `org/` against a stub of `gh` that answers from
@@ -146,15 +201,13 @@ hand, by an organization owner:
 
 - **Release GitHub App** ([FY-0030][fy-0030]). In Settings → Developer settings
   → GitHub Apps, create `flakeyard-bot` without a webhook, with the repository
-  permissions listed in FY-0030 and no organization permissions, installable
-  only on this account. Install it on all repositories; `settings.sh` checks the
-  installation. Record its identifiers with
+  permissions of `organization/installations.json` and no organization
+  permissions, installable only on this account. Install it on all repositories;
+  `settings.sh` checks the installation. Record its identifiers with
   `BOT_APP_ID=... BOT_CLIENT_ID=... ./settings.sh`.
-- **Private keys of the release App.** Generate a key on the App's page, store
-  it with `BOT_PRIVATE_KEY_FILE=... ./apply.sh` and keep the file outside of any
-  repository. Rotate it once a year and at once when it may have been exposed:
-  generate a new key, store it in every released repository, then delete the old
-  key on the App's page.
+- **Private keys of the release App.** Generated on the App's page and stored as
+  [Release bot key](#release-bot-key) says. Rotate the key once a year and at
+  once when it may have been exposed.
 - **Renovate** ([FY-0029][fy-0029]). Install the Mend Renovate app from [its
   page][renovate-app] on the organization for all repositories. `settings.sh`
   checks the installation and its permissions, not the mode. In the [Mend
@@ -181,6 +234,8 @@ hand, by an organization owner:
 
 [mend-portal]: https://developer.mend.io/
 [renovate-app]: https://github.com/apps/renovate
+[fy-0007]:
+  https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0007-branching-and-releases.md
 [fy-0009]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0009-ci-on-runners.md
 [fy-0011]:

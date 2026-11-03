@@ -1,0 +1,36 @@
+# Weekly audit of the releases of the organization: every release vX.Y.Z is
+# made by the release bot from the merge commit of a release pull request
+# (FY-0030). A failed run is the alert; org/README.md says what to do then.
+#
+# This is not a check workflow: it checks the organization, not a commit, so
+# it posts no commit status and no ruleset requires it.
+name: audit
+
+on:
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: audit
+  cancel-in-progress: false # a dispatched run waits for the weekly one
+
+jobs:
+  releases:
+    name: Release audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read # checkout; every repository is public
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Needs gh and jq, which the runner has.
+      - run: org/audit/releases.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ORG: ${{ github.repository_owner }}
+          BOT_LOGIN: flakeyard-bot[bot] # the App flakeyard-bot of installations.json

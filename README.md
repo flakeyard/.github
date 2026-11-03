@@ -18,6 +18,8 @@ pull request titles, `renovate.json` and the immutable release behind its preset
 tag ([FY-0031][fy-0031]). The repository has no flake, so no flake checks are
 built. [`scorecard.yaml`](.github/workflows/scorecard.yaml) runs OpenSSF
 Scorecard through [workflow-scorecard][workflow-scorecard].
+[`audit.yaml`](.github/workflows/audit.yaml) audits the releases of every
+repository each week, see [org/](org/README.md#release-audit).
 
 ## Bootstrap
 

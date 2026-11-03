@@ -24,6 +24,9 @@ usually `nix flake check`; make sure they pass before opening a pull request.
   `perf`, `test`, `build`, `ci`, `chore`, `revert` ([FY-0007][fy-0007]).
 - Mark breaking changes with `!` after the type and describe them in the PR
   body.
+- New functionality and bug fixes come with automated tests in the same pull
+  request: tests of the new behaviour, and for a fix a test that fails without
+  it. Each README says where the tests live and how to run them.
 - Open an issue first for non-trivial changes.
 
 ## Security

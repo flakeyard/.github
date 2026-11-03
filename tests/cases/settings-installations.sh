@@ -55,6 +55,18 @@ check "drift: a missing permission is fine" \
 check "drift: unlisted App" printed 'stranger: installed, but not listed'
 check "drift: no success" not_printed 'checked'
 
+installed 'map(if .app_slug == "renovate"
+  then . + {suspended_at: "2026-11-01T00:00:00Z"} else . end)'
+run_org settings.sh
+check "suspended: exits 1" exited 1
+check "suspended: reported" \
+  printed 'renovate: suspended since 2026-11-01T00:00:00Z'
+check "suspended: no success" not_printed 'checked'
+
+installed 'map(. + {suspended_at: null})'
+run_org settings.sh
+check "not suspended: exits 0" exited 0
+
 fixture_status GET "$installations" 500
 run_org settings.sh
 check "listing fails: exits non-zero" not exited 0

@@ -83,18 +83,45 @@ store_secret() {
   gh secret set "$secret" --repo "$org/$repo" --env "$environment" <"$file"
 }
 
+# environment_names REPO: print the name of every environment of REPO.
+environment_names() {
+  local repo=$1
+  gh api --paginate "repos/$org/$repo/environments?per_page=100" \
+    --jq '.environments[].name'
+}
+
+# warn_unmanaged_environments REPO MANAGED...: warn about every environment of
+# REPO that is not one of MANAGED. It is drift, but it is left in place:
+# deleting it would delete its secrets too, so that is left to the owner.
+warn_unmanaged_environments() {
+  local repo=$1 names name unmanaged=()
+  shift
+  names=$(environment_names "$repo")
+  while IFS= read -r name; do
+    [[ -n $name ]] || continue
+    contains "$name" "$@" || unmanaged+=("$name")
+  done <<<"$names"
+  ((${#unmanaged[@]} > 0)) || return 0
+  printf 'warning: %s: environments not in repository/environments/:\n' \
+    "$repo" >&2
+  printf '%s\n' "${unmanaged[@]}" >&2
+}
+
 # The bot key and the cache token are available only to jobs on the deploy
 # branches, and the bot key only after a reviewer approves the job. The secret
 # names must match those declared by the workflows: an environment secret
 # reaches a reusable workflow only under the name the caller passes.
 apply_environments() {
-  local repo=$1
+  local repo=$1 managed=()
   if is_released "$repo"; then
     deploy_environment "$repo" release
     store_secret "$repo" release APP_PRIVATE_KEY "$bot_key_file"
+    managed+=(release)
   fi
   if pushes_to_cache "$repo"; then
     deploy_environment "$repo" cache
     store_secret "$repo" cache CACHIX_AUTH_TOKEN "$cache_token_file"
+    managed+=(cache)
   fi
+  warn_unmanaged_environments "$repo" "${managed[@]}"
 }

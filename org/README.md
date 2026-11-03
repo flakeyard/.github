@@ -39,8 +39,8 @@ gh auth refresh -h github.com -s admin:org  # once, for settings.sh
 ```
 
 `apply.sh` also enables Dependabot alerts, private vulnerability reporting and
-immutable releases in every repository, CodeQL default setup in `atom-*` and
-`action-*`, and Discussions in `.github`, which serve the whole organization.
+immutable releases and CodeQL default setup in every repository, and Discussions
+in `.github`, which serve the whole organization.
 
 `settings.sh` also stores the identifiers of the release bot GitHub App as the
 organization variables `BOT_APP_ID` and `BOT_CLIENT_ID` when they are given:
@@ -166,10 +166,10 @@ hand, by an organization owner:
   in the package settings that it is public, linked to its repository, and that
   the repository has write access under Manage Actions access.
 - **Code security configurations.** Not used: `apply.sh` enables the same
-  features in every repository, CodeQL default setup only in `atom-*` and
-  `action-*`, and a configuration attached to a repository would override them.
-  In Settings → Code security → Configurations, keep no configuration attached
-  to repositories and none as the default for new repositories.
+  features in every repository, and a configuration attached to a repository
+  would override them. In Settings → Code security → Configurations, keep no
+  configuration attached to repositories and none as the default for new
+  repositories.
 - **Personal access token policy.** GitHub offers no API for it. In Settings →
   Personal access tokens, allow fine-grained tokens with administrator approval
   and a maximum lifetime of 90 days, and restrict classic tokens.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# The environments "release" and "cache" of apply.sh: which repositories get
-# them, their reviewers, their deployment branch policies and the warning about
-# other environments.
+# The environments "release", "publish" and "cache" of apply.sh: which
+# repositories get them, their reviewers, their deployment branch policies,
+# their secrets and the warning about other environments.
 set -uo pipefail
 # shellcheck source=tests/lib.sh
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib.sh"
@@ -9,9 +9,16 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../lib.sh"
 readonly owner='{"type":"User","id":264014534}'
 readonly environments=repos/fy/atom-x/environments
 readonly policies=$environments/release/deployment-branch-policies
+readonly image_environments=repos/fy/image-w/environments
+readonly publish_policies=$image_environments/publish/deployment-branch-policies
 
-# put NAME: the call that creates the environment NAME of atom-x.
-put() { printf 'api --silent -X PUT %s/%s --input -' "$environments" "$1"; }
+# put NAME [REPO]: the call that creates the environment NAME of REPO, atom-x
+# by default.
+put() {
+  local name=$1 repo=${2:-atom-x}
+  printf 'api --silent -X PUT repos/fy/%s/environments/%s --input -' \
+    "$repo" "$name"
+}
 
 # environment REVIEWERS: the body that creates a deploy environment.
 environment() {
@@ -48,14 +55,31 @@ check "adds the branch policy release/v*" \
 BOT_APP_ID=42 run_org apply.sh action-y
 check "action-y gets release" called repos/fy/action-y/environments/release
 check "action-y gets no cache" not_called repos/fy/action-y/environments/cache
+check "action-y gets no publish" \
+  not_called repos/fy/action-y/environments/publish
 
 # The checks of an image build the image, whose paths are not pushed.
 BOT_APP_ID=42 run_org apply.sh image-w
 check "image-w gets release" called repos/fy/image-w/environments/release
 check "image-w gets no cache" not_called repos/fy/image-w/environments/cache
+check "image-w: publish requires the owner of release" \
+  sent "$(put publish image-w)" "$(environment "[$owner]")"
+check "image-w: publish allows the policy main" \
+  called "-X POST $publish_policies -f name=main -f type=branch"
+check "image-w: publish allows the policy release/v*" \
+  called "-X POST $publish_policies -f name=release/v\\* -f type=branch"
+
+# Publication uses GITHUB_TOKEN, so the bot key stays in "release" only.
+printf 'key\n' >"$work/key.pem"
+BOT_APP_ID=42 BOT_PRIVATE_KEY_FILE=$work/key.pem run_org apply.sh image-w
+check "image-w with the key: release gets it" \
+  called 'secret set APP_PRIVATE_KEY --repo fy/image-w --env release'
+check "image-w with the key: publish gets no secret" not_called '--env publish'
 
 BOT_APP_ID=42 run_org apply.sh template-v
 check "template-v gets cache" called repos/fy/template-v/environments/cache
+check "template-v gets no publish" \
+  not_called repos/fy/template-v/environments/publish
 
 BOT_APP_ID=42 run_org apply.sh decisions
 check "decisions gets no environment" \
@@ -73,7 +97,7 @@ environments() {
     | fixture GET "repos/fy/$repo/environments"
 }
 
-environments image-w release cache
+environments image-w release publish cache
 BOT_APP_ID=42 run_org apply.sh image-w
 check "leftover cache: exits 0" exited 0
 check "leftover cache: warns" \
@@ -81,6 +105,7 @@ check "leftover cache: warns" \
 check "leftover cache: names it" printed cache
 check "leftover cache: keeps it" not_called "-X DELETE repos/fy/image-w"
 check "leftover cache: release is managed" not_printed release
+check "leftover cache: publish is managed" not_printed publish
 check "leftover cache: is applied" printed 'image-w: done'
 
 environments decisions release

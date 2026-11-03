@@ -25,9 +25,7 @@ This repository is bootstrapped under [FY-0022][fy-0022]. Until the providers of
 its remaining checks are released:
 
 - actionlint, zizmor, shellcheck, shfmt, Prettier, markdownlint, typos and
-  `reuse lint` run locally before every pull request (provider: the atoms);
-- rulesets require no status checks until every repository has adopted
-  workflow-check.
+  `reuse lint` run locally before every pull request (provider: the atoms).
 
 ## License
 

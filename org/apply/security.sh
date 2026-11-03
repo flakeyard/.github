@@ -15,20 +15,14 @@ has_commits() {
   esac
 }
 
-# CodeQL default setup conflicts with an own CodeQL workflow, so it is
-# enabled only for atoms and actions.
-wants_default_code_scanning() {
-  local repo=$1
-  [[ $repo == atom-* || $repo == action-* ]]
-}
-
 apply_security() {
   local repo=$1
   gh api --silent -X PUT "repos/$org/$repo/vulnerability-alerts"
   gh api --silent -X PUT "repos/$org/$repo/private-vulnerability-reporting"
   gh api --silent -X PUT "repos/$org/$repo/immutable-releases"
-  # Default setup needs a commit to scan.
-  if wants_default_code_scanning "$repo" && has_commits "$repo"; then
+  # Default setup needs a commit to scan. No repository has its own CodeQL
+  # workflow, which default setup would conflict with.
+  if has_commits "$repo"; then
     gh api --silent -X PATCH "repos/$org/$repo/code-scanning/default-setup" \
       -f state=configured
   fi

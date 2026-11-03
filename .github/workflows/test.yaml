@@ -1,0 +1,50 @@
+# CI of this repository: the tests of the scripts of org/, then
+# workflow-check, which checks pull request titles, renovate.json and its preset
+# tag. The repository has no flake, so check builds no flake checks.
+name: test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited] # edited: the title check
+  push:
+    branches: [main, "release/v*"]
+  workflow_dispatch: # manual checks; dispatched runs post a commit status
+
+permissions: {}
+
+concurrency:
+  group: test-${{ github.ref }}
+  # A title or description edit must not cancel a long run.
+  cancel-in-progress: >-
+    ${{ github.event_name == 'pull_request'
+        && github.event.action != 'edited' }}
+
+jobs:
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Needs bash and jq, which the runner has; the stub of gh answers
+      # every call, so no token is used.
+      - run: tests/run.sh
+
+  check:
+    needs: [unit] # every other job of the workflow
+    # Dispatched runs post their final status on every outcome.
+    if: ${{ !cancelled() || github.event_name == 'workflow_dispatch' }}
+    uses: flakeyard/workflow-check/.github/workflows/check.yaml@30e031ba81beb738ab4cbe18425a8f4f7a6af552 # v0.1.0
+    permissions:
+      actions: read # own job name and the jobs of the run
+      contents: read # repository files through the contents API, checkout
+      pull-requests: read # the title of the pull request
+      statuses: write # commit statuses of dispatched runs
+    with:
+      needs: ${{ toJSON(needs) }}
+      flake: ""
+      renovate-presets: '["flakeyard/renovate-config"]'

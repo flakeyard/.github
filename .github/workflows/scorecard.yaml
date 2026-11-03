@@ -1,0 +1,19 @@
+name: scorecard
+
+on:
+  push:
+    branches: [main] # the default branch
+  schedule:
+    - cron: "41 3 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  scorecard:
+    uses: flakeyard/workflow-scorecard/.github/workflows/scorecard.yaml@9eda9af77c8861e857c8b24349770f457b063e50 # v0.1.0
+    permissions:
+      actions: read # workflow runs, needed in private repositories
+      contents: read # checkout and the repository through the API
+      id-token: write # signs the published results
+      security-events: write # uploads the results to code scanning

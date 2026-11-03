@@ -117,7 +117,9 @@ change.
 Every repository that pushes to the binary cache, matched by a glob of
 `environments/cache.json`, gets the environment `cache`, deployable from the
 same branches. The push token is the secret `CACHIX_AUTH_TOKEN` of that
-environment ([FY-0009][fy-0009]); pass its file the same way:
+environment ([FY-0009][fy-0009]). Images get no `cache`: their checks build the
+image, whose paths are not pushed ([FY-0019][fy-0019]). Pass the token file the
+same way:
 
 ```sh
 CACHIX_AUTH_TOKEN_FILE=~/flakeyard-cachix.token ./apply.sh atom-shell

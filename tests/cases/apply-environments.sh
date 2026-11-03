@@ -48,7 +48,16 @@ BOT_APP_ID=42 run_org apply.sh action-y
 check "action-y gets release" called repos/fy/action-y/environments/release
 check "action-y gets no cache" not_called repos/fy/action-y/environments/cache
 
+# The checks of an image build the image, whose paths are not pushed.
+BOT_APP_ID=42 run_org apply.sh image-w
+check "image-w gets release" called repos/fy/image-w/environments/release
+check "image-w gets no cache" not_called repos/fy/image-w/environments/cache
+
+BOT_APP_ID=42 run_org apply.sh template-v
+check "template-v gets cache" called repos/fy/template-v/environments/cache
+
 BOT_APP_ID=42 run_org apply.sh decisions
-check "decisions gets no environment" not_called environments/
+check "decisions gets no environment" \
+  not_called repos/fy/decisions/environments/
 
 finish

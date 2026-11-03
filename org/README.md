@@ -51,13 +51,13 @@ BOT_APP_ID=5414823 BOT_CLIENT_ID=Iv23... ./settings.sh
 
 Last, `settings.sh` checks that every GitHub App of
 `organization/installations.json` is installed on the organization for the
-listed repositories, and that no other App is installed. The permissions listed
-there are a ceiling: an App that holds a permission not listed, or a higher
-level of one, is drift. A lower or missing permission is not, so the check does
-not break when an App asks for less. An App that asks for more needs the owner's
-approval on GitHub, and then a pull request that lists the new permission. The
-check changes nothing and runs after every setting is applied: it prints every
-difference and then fails.
+listed repositories and is not suspended, and that no other App is installed.
+The permissions listed there are a ceiling: an App that holds a permission not
+listed, or a higher level of one, is drift. A lower or missing permission is
+not, so the check does not break when an App asks for less. An App that asks for
+more needs the owner's approval on GitHub, and then a pull request that lists
+the new permission. The check changes nothing and runs after every setting is
+applied: it prints every difference and then fails.
 
 Run `apply.sh` for every new repository. It needs the ID of the release bot
 GitHub App, either as `BOT_APP_ID` in the environment or as the organization

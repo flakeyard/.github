@@ -19,6 +19,10 @@ readonly jq_installation_problems='
     | "\(.app_slug): installed for \($found.repository_selection)"
       + " repositories, not \(.repository_selection)";
 
+  def suspension_problem($found):
+    select($found.suspended_at != null)
+    | "\(.app_slug): suspended since \($found.suspended_at)";
+
   def permission_problems($found):
     .app_slug as $slug | .permissions as $allowed
     | $found.permissions | to_entries[] | .key as $name
@@ -29,7 +33,8 @@ readonly jq_installation_problems='
   def problems:
     installation(.app_slug) as $found
     | if $found == null then "\(.app_slug): not installed"
-      else selection_problem($found), permission_problems($found) end;
+      else suspension_problem($found), selection_problem($found),
+        permission_problems($found) end;
 
   def unlisted($listed):
     $installed[].app_slug | select(IN($listed[]) | not)

@@ -30,9 +30,10 @@ and are safe to run repeatedly. Settings changed only in the web interface are
 drift and are overwritten by the next run ([FY-0011][fy-0011]): topics that
 `topics.json` does not list are removed, and so are deployment branch policies
 other than `main` and `release/v*`. Rulesets that `repository/rulesets/` does
-not define are kept, since a ruleset only adds rules, but `apply.sh` prints a
-warning that names them; delete them by hand. Rulesets inherited from the
-organization are not touched.
+not define and environments that `repository/environments/` does not give to the
+repository are kept, but `apply.sh` prints a warning that names them; delete
+them by hand. A ruleset only adds rules, and deleting an environment deletes its
+secrets. Rulesets inherited from the organization are not touched.
 
 ```sh
 gh auth refresh -h github.com -s admin:org  # once, for settings.sh

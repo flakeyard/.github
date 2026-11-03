@@ -14,6 +14,11 @@ Older versions do not receive fixes.
 ## Reporting a vulnerability
 
 Report vulnerabilities privately through the **Report a vulnerability** button
-on the **Security** tab of the affected repository. Do not open a public issue.
+on the **Security** tab of the affected repository, as described in [Privately
+reporting a security vulnerability][private-reporting]. Do not open a public
+issue.
 
 Reports are usually acknowledged within 7 days.
+
+[private-reporting]:
+  https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability

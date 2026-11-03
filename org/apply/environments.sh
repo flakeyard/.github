@@ -3,12 +3,20 @@
 # from repository/environments/, matched with glob.sh. Sourced by apply.sh,
 # which sets org, here, bot_key_file and cache_token_file.
 
-# Branches that may deploy to the environments "release" and "cache".
+# Branches that may deploy to the environments.
 readonly deploy_branches=(main 'release/v*')
 
 # pushes_to_cache REPO: whether REPO pushes to the binary cache, by
 # environments/cache.json.
 pushes_to_cache() { matches_glob environments/cache.json "$1"; }
+
+# publishes_images REPO: whether REPO publishes container images, by
+# environments/publish.json.
+publishes_images() { matches_glob environments/publish.json "$1"; }
+
+# The environment "publish" has the reviewers of "release": the same owner
+# approves a release and the publication of its image.
+readonly publish_reviewers=release
 
 # branch_policies ENV: print "id<TAB>type<TAB>name" of every deployment policy.
 branch_policies() {
@@ -36,12 +44,12 @@ allow_deployment_branches() {
   done
 }
 
-# environment_reviewers NAME: print the required reviewers of the environment
-# NAME as the JSON list of the API, from environments/NAME-reviewers.json. An
-# environment without that file has no reviewers.
+# environment_reviewers LIST: print the required reviewers of the list LIST as
+# the JSON list of the API, from environments/LIST-reviewers.json. A list
+# without that file has no reviewers.
 environment_reviewers() {
-  local name=$1 file
-  file="$here/repository/environments/$name-reviewers.json"
+  local list=$1 file
+  file="$here/repository/environments/$list-reviewers.json"
   if [[ -e $file ]]; then
     jq -c 'map({type, id})' "$file"
   else
@@ -65,12 +73,13 @@ create_deploy_environment() {
   }' | gh api --silent -X PUT "$env" --input -
 }
 
-# deploy_environment REPO NAME: create the environment NAME of REPO,
-# deployable only from the deploy branches, with its reviewers.
+# deploy_environment REPO NAME [LIST]: create the environment NAME of REPO,
+# deployable only from the deploy branches, with the reviewers of the list
+# LIST, which is NAME by default.
 deploy_environment() {
-  local repo=$1 name=$2 env reviewers
+  local repo=$1 name=$2 list=${3:-$2} env reviewers
   env="repos/$org/$repo/environments/$name"
-  reviewers=$(environment_reviewers "$name")
+  reviewers=$(environment_reviewers "$list")
   create_deploy_environment "$env" "$reviewers"
   allow_deployment_branches "$env"
 }
@@ -108,7 +117,9 @@ warn_unmanaged_environments() {
 }
 
 # The bot key and the cache token are available only to jobs on the deploy
-# branches, and the bot key only after a reviewer approves the job. The secret
+# branches, and the bot key only after a reviewer approves the job. The
+# environment "publish" holds no secret: its jobs publish images with
+# GITHUB_TOKEN, and only after a reviewer approves them. The secret
 # names must match those declared by the workflows: an environment secret
 # reaches a reusable workflow only under the name the caller passes.
 apply_environments() {
@@ -117,6 +128,10 @@ apply_environments() {
     deploy_environment "$repo" release
     store_secret "$repo" release APP_PRIVATE_KEY "$bot_key_file"
     managed+=(release)
+  fi
+  if publishes_images "$repo"; then
+    deploy_environment "$repo" publish "$publish_reviewers"
+    managed+=(publish)
   fi
   if pushes_to_cache "$repo"; then
     deploy_environment "$repo" cache

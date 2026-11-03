@@ -100,10 +100,18 @@ for readers. `apply.sh` replaces the reviewers of the environment with that
 list. Self-review stays allowed: the owner merges the release pull requests, and
 the run that the merge starts waits for their own approval.
 
-Admins cannot bypass the rules of `release` and `cache`. A waiting job starts
-only after a required reviewer approves it, and only on a deploy branch, even
-for an organization owner. The owner still approves their runs as the reviewer;
-they lose only the option to start a job without a review.
+Every repository that publishes container images, matched by a glob of
+`environments/publish.json`, also gets the environment `publish`, deployable
+from the same branches and with the reviewers of `release`. The jobs that push
+an image to GHCR, attest it, tag it and write its release notes run in it, so no
+image is published without the owner's approval of that run. It holds no secret:
+publication uses `GITHUB_TOKEN`, and the bot key stays in `release`
+([FY-0027][fy-0027]).
+
+Admins cannot bypass the rules of `release`, `publish` and `cache`. A waiting
+job starts only after a required reviewer approves it, and only on a deploy
+branch, even for an organization owner. The owner still approves their runs as
+the reviewer; they lose only the option to start a job without a review.
 
 Every repository that pushes to the binary cache, matched by a glob of
 `environments/cache.json`, gets the environment `cache`, deployable from the
@@ -179,6 +187,8 @@ hand, by an organization owner:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0011-settings-as-code.md
 [fy-0019]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0019-binary-cache.md
+[fy-0027]:
+  https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0027-publish-image.md
 [fy-0029]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0029-renovate-mend.md
 [fy-0030]:

@@ -41,8 +41,10 @@ A breaking change of any of the following requires a new major version:
   - the tools it provides by name, and the Nix implementation with its minor
     version;
   - supported platforms, container engines and required capabilities.
-- **Renovate preset**: preset names, and rules that change which updates are
-  proposed, grouped or merged automatically.
+- **Renovate preset**: names of the presets outside `internal/`, and the rules
+  the presets set explicitly that change which updates are proposed, grouped or
+  merged automatically, or which commit types they propose. Defaults of the
+  Renovate version that runs them are not ([FY-0029][fy-0029]).
 
 Tool versions are not part of the API of atoms or of the image: atoms run the
 tools from the project's nixpkgs, so a new warning after a nixpkgs update comes
@@ -83,3 +85,5 @@ releases are not patched. The previous major version receives security fixes for
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0023-setup-nix.md
 [fy-0024]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0024-versioning-and-support.md
+[fy-0029]:
+  https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0029-renovate-mend.md

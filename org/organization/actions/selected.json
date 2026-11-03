@@ -2,10 +2,7 @@
   "github_owned_allowed": true,
   "verified_allowed": false,
   "patterns_allowed": [
-    "cachix/cachix-action@*",
     "googleapis/release-please-action@*",
-    "peter-evans/create-pull-request@*",
-    "devcontainers/ci@*",
     "ossf/scorecard-action@*"
   ]
 }

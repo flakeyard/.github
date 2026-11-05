@@ -26,3 +26,15 @@ repositories() {
   gh api --paginate "orgs/$org/repos?per_page=100" \
     --jq '.[] | select(.archived | not) | .name'
 }
+
+# select_repositories REPO...: set repos to REPO..., or to every non-archived
+# repository of $org when no REPO is given.
+select_repositories() {
+  local all
+  repos=("$@")
+  ((${#repos[@]} == 0)) || return 0
+  # Assigned separately so that a failing gh stops the script.
+  all=$(repositories)
+  [[ -n $all ]] || die "no repositories in $org"
+  mapfile -t repos <<<"$all"
+}

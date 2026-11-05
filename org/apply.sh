@@ -55,14 +55,7 @@ source "$here/apply/environments.sh"
 # shellcheck source=apply/security.sh
 source "$here/apply/security.sh"
 
-repos=("$@")
-if ((${#repos[@]} == 0)); then
-  # Assigned separately so that a failing gh stops the script.
-  all=$(gh repo list "$org" --limit 1000 --no-archived \
-    --json name --jq '.[].name')
-  [[ -n $all ]] || die "no repositories in $org"
-  mapfile -t repos <<<"$all"
-fi
+select_repositories "$@"
 
 for repo in "${repos[@]}"; do
   apply_settings "$repo"

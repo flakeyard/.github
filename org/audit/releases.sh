@@ -200,13 +200,7 @@ audit_repository() {
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 
-repos=("$@")
-if ((${#repos[@]} == 0)); then
-  # Assigned separately so that a failing gh stops the script.
-  all=$(repositories)
-  [[ -n $all ]] || die "no repositories in $org"
-  mapfile -t repos <<<"$all"
-fi
+select_repositories "$@"
 
 for repo in "${repos[@]}"; do
   audit_repository "$repo" "$work"

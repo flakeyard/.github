@@ -40,6 +40,10 @@ readonly jq_release_definitions='
       (select(maintained_base | not)
         | "\($pr) is merged into \(.base.ref), not main or release/vN"),
       (select(tagged | not) | "\($pr) is not labelled autorelease: tagged");
+
+  def has_merge_commit($commit): .merge_commit_sha == $commit;
+  # A release pull request is one without problems.
+  def release_pull_request: [problems] == [];
 '
 
 # A jq program that reads every pull request of a repository and prints one
@@ -49,10 +53,10 @@ readonly jq_release_definitions='
 # has a merge commit too: the test merge of its head into its base.
 # shellcheck disable=SC2016 # jq variables, not shell ones
 readonly jq_release_problems="$jq_release_definitions"'
-  map(select(.merge_commit_sha == $commit)) as $merged
+  map(select(has_merge_commit($commit))) as $merged
   | if $merged == [] then
       "commit \($commit) is not the merge commit of a pull request"
-    elif any($merged[]; [problems] == []) then empty
+    elif any($merged[]; release_pull_request) then empty
     else $merged[] | problems end
 '
 
@@ -60,7 +64,7 @@ readonly jq_release_problems="$jq_release_definitions"'
 # same list, whose merge commit is $commit.
 # shellcheck disable=SC2016 # jq variables, not shell ones
 readonly jq_release_number="$jq_release_definitions"'
-  first(.[] | select(.merge_commit_sha == $commit and ([problems] == [])))
+  first(.[] | select(has_merge_commit($commit) and release_pull_request))
   | .number
 '
 

@@ -15,9 +15,10 @@ Organization-wide defaults for [flakeyard](https://github.com/flakeyard):
 [`test.yaml`](.github/workflows/test.yaml) runs the tests of `org/`
 (`tests/run.sh`) and then calls [workflow-check][workflow-check], which checks
 pull request titles, `renovate.json` and the immutable release behind its preset
-tag ([FY-0031][fy-0031]). The repository has no flake, so no flake checks are
-built. [`scorecard.yaml`](.github/workflows/scorecard.yaml) runs OpenSSF
-Scorecard through [workflow-scorecard][workflow-scorecard].
+tag ([workflow-check ADR-0001][workflow-check-adr-0001]). The repository has no
+flake, so no flake checks are built.
+[`scorecard.yaml`](.github/workflows/scorecard.yaml) runs OpenSSF Scorecard
+through [workflow-scorecard][workflow-scorecard].
 [`audit.yaml`](.github/workflows/audit.yaml) audits the releases of every
 repository each week, see [org/](org/README.md#release-audit).
 
@@ -37,8 +38,8 @@ every file is declared in [REUSE.toml](REUSE.toml).
 
 [fy-0022]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0022-bootstrap.md
-[fy-0031]:
-  https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0031-check-pull-requests-and-pushes-with-workflow-check.md
+[workflow-check-adr-0001]:
+  https://github.com/flakeyard/workflow-check/blob/main/docs/adr/records/0001-check-pull-requests-and-pushes.md
 [workflow-check]: https://github.com/flakeyard/workflow-check
 [workflow-scorecard]: https://github.com/flakeyard/workflow-scorecard
 [scorecard-badge]:

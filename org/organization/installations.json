@@ -6,7 +6,8 @@
       "contents": "write",
       "issues": "write",
       "metadata": "read",
-      "pull_requests": "write"
+      "pull_requests": "write",
+      "workflows": "write"
     }
   },
   {

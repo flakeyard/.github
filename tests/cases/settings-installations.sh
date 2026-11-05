@@ -55,13 +55,13 @@ check "drift: a missing permission is fine" \
 check "drift: unlisted App" printed 'stranger: installed, but not listed'
 check "drift: no success" not_printed 'checked'
 
-# The release bot changes no workflow files until template updates exist.
+# The release bot writes workflows: GitHub refuses the tag of a release made by
+# an App otherwise, since the commits of the tag carry workflow files.
 installed 'map(if .app_slug == "flakeyard-bot"
   then .permissions.workflows = "write" else . end)'
 run_org settings.sh
-check "bot workflows: exits 1" exited 1
-check "bot workflows: reported" \
-  printed 'flakeyard-bot: permission workflows is write, allowed none'
+check "bot workflows: exits 0" exited 0
+check "bot workflows: not drift" not_printed 'permission workflows'
 
 installed 'map(if .app_slug == "renovate"
   then . + {suspended_at: "2026-11-01T00:00:00Z"} else . end)'

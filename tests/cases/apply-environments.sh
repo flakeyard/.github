@@ -46,7 +46,7 @@ check "atom-x is applied" printed 'atom-x: done'
 check "release requires the owner" \
   sent "$(put release)" "$(environment "[$owner]")"
 check "cache requires no reviewer" sent "$(put cache)" "$(environment '[]')"
-check "keeps the policy main" not_called "$policies/1"
+check "keeps the policy main" not called "$policies/1"
 check "deletes the policy *" called "-X DELETE $policies/2"
 check "deletes the tag policy release/v*" called "-X DELETE $policies/3"
 check "adds the branch policy release/v*" \
@@ -54,14 +54,14 @@ check "adds the branch policy release/v*" \
 
 BOT_APP_ID=42 run_org apply.sh action-y
 check "action-y gets release" called repos/fy/action-y/environments/release
-check "action-y gets no cache" not_called repos/fy/action-y/environments/cache
+check "action-y gets no cache" not called repos/fy/action-y/environments/cache
 check "action-y gets no publish" \
-  not_called repos/fy/action-y/environments/publish
+  not called repos/fy/action-y/environments/publish
 
 # The checks of an image build the image, whose paths are not pushed.
 BOT_APP_ID=42 run_org apply.sh image-w
 check "image-w gets release" called repos/fy/image-w/environments/release
-check "image-w gets no cache" not_called repos/fy/image-w/environments/cache
+check "image-w gets no cache" not called repos/fy/image-w/environments/cache
 check "image-w: publish requires the owner of release" \
   sent "$(put publish image-w)" "$(environment "[$owner]")"
 check "image-w: publish allows the policy main" \
@@ -74,17 +74,17 @@ printf 'key\n' >"$work/key.pem"
 BOT_APP_ID=42 BOT_PRIVATE_KEY_FILE=$work/key.pem run_org apply.sh image-w
 check "image-w with the key: release gets it" \
   called 'secret set APP_PRIVATE_KEY --repo fy/image-w --env release'
-check "image-w with the key: publish gets no secret" not_called '--env publish'
+check "image-w with the key: publish gets no secret" not called '--env publish'
 
 BOT_APP_ID=42 run_org apply.sh template-v
 check "template-v gets cache" called repos/fy/template-v/environments/cache
 check "template-v gets no publish" \
-  not_called repos/fy/template-v/environments/publish
+  not called repos/fy/template-v/environments/publish
 
 BOT_APP_ID=42 run_org apply.sh decisions
 check "decisions gets no environment" \
-  not_called repos/fy/decisions/environments/
-check "decisions: no warning" not_printed 'warning:'
+  not called repos/fy/decisions/environments/
+check "decisions: no warning" not printed 'warning:'
 
 # environments REPO NAME...: answer the listing of environments of REPO with
 # the environments NAME.
@@ -103,9 +103,9 @@ check "leftover cache: exits 0" exited 0
 check "leftover cache: warns" \
   printed 'warning: image-w: environments not in repository/environments/:'
 check "leftover cache: names it" printed cache
-check "leftover cache: keeps it" not_called "-X DELETE repos/fy/image-w"
-check "leftover cache: release is managed" not_printed release
-check "leftover cache: publish is managed" not_printed publish
+check "leftover cache: keeps it" not called "-X DELETE repos/fy/image-w"
+check "leftover cache: release is managed" not printed release
+check "leftover cache: publish is managed" not printed publish
 check "leftover cache: is applied" printed 'image-w: done'
 
 environments decisions release
@@ -114,6 +114,6 @@ check "unreleased: warns about release" printed release
 check "unreleased: paginates" \
   called "--paginate repos/fy/decisions/environments\\?per_page=100"
 check "unreleased: creates none" \
-  not_called "-X PUT repos/fy/decisions/environments/"
+  not called "-X PUT repos/fy/decisions/environments/"
 
 finish

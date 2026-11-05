@@ -32,8 +32,8 @@ check "none: creates main" \
   "$(jq -c . "$root/org/repository/rulesets/main.json")"
 check "none: puts the bot app id" \
   sent "api --silent -X POST $rulesets --input -" "$(release_tags)"
-check "none: replaces nothing" not_called "-X PUT $rulesets/"
-check "none: no warning" not_printed 'warning:'
+check "none: replaces nothing" not called "-X PUT $rulesets/"
+check "none: no warning" not printed 'warning:'
 
 listed main=1 release-branches=2 release-tags=3 version-branches=4
 BOT_APP_ID=42 run_org apply.sh atom-x
@@ -41,7 +41,7 @@ check "all: exits 0" exited 0
 check "all: replaces main by id" called "-X PUT $rulesets/1 --input -"
 check "all: replaces release-tags by id" \
   sent "api --silent -X PUT $rulesets/3 --input -" "$(release_tags)"
-check "all: creates none" not_called "-X POST $rulesets"
+check "all: creates none" not called "-X POST $rulesets"
 
 listed main=1
 jq -n '[{id: 3, name: "release-tags", source_type: "Repository"}]' \
@@ -57,14 +57,14 @@ check "unmanaged: exits 0" exited 0
 check "unmanaged: warns" \
   printed 'warning: atom-x: rulesets not in repository/rulesets/:'
 check "unmanaged: names it" printed hotfix
-check "unmanaged: keeps it" not_called "$rulesets/7"
+check "unmanaged: keeps it" not called "$rulesets/7"
 check "unmanaged: is applied" printed 'atom-x: done'
 
 listed main=1 main=2
 BOT_APP_ID=42 run_org apply.sh atom-x
 check "duplicate: exits non-zero" not exited 0
 check "duplicate: names it" printed 'several rulesets are named main'
-check "duplicate: replaces nothing" not_called "-X PUT $rulesets/"
-check "duplicate: is not done" not_printed 'atom-x: done'
+check "duplicate: replaces nothing" not called "-X PUT $rulesets/"
+check "duplicate: is not done" not printed 'atom-x: done'
 
 finish

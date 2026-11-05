@@ -16,16 +16,23 @@ readonly owner
 # audit REPO...: run the audit with the release bot $bot.
 audit() { BOT_LOGIN=$bot run_org audit/releases.sh "$@"; }
 
-# releases REPO PAGE TAG=AUTHOR...: answer the page PAGE (1 or more) of the
-# releases of REPO.
+# fixture_page PATH PAGE: store stdin as the answer of the stub to the page
+# PAGE (1 or more) of GET PATH.
+fixture_page() {
+  local path=$1 page=$2
+  ((page == 1)) || path=$path.$page
+  fixture GET "$path"
+}
+
+# releases REPO PAGE TAG=AUTHOR...: answer the page PAGE of the releases of
+# REPO.
 releases() {
-  local repo=$1 page=$2 pair suffix=''
+  local repo=$1 page=$2 pair
   shift 2
-  ((page > 1)) && suffix=.$page
   for pair; do
     jq -n --arg tag "${pair%%=*}" --arg login "${pair#*=}" \
       '{tag_name: $tag, author: {login: $login}}'
-  done | jq -s . | fixture GET "repos/fy/$repo/releases$suffix"
+  done | jq -s . | fixture_page "repos/fy/$repo/releases" "$page"
 }
 
 # tag REPO TAG COMMIT: make the tag TAG of REPO point to COMMIT.
@@ -55,10 +62,10 @@ pull() {
 # pull requests on stdin, and each pull request on its own, merged by
 # .merged_by.login or else by $owner. Like the API, the list has no merged_by.
 pulls() {
-  local repo=$1 page=$2 suffix='' list number
-  ((page > 1)) && suffix=.$page
+  local repo=$1 page=$2 list number
   list=$(jq -s .)
-  jq 'map(del(.merged_by))' <<<"$list" | fixture GET "repos/fy/$repo/pulls$suffix"
+  jq 'map(del(.merged_by))' <<<"$list" \
+    | fixture_page "repos/fy/$repo/pulls" "$page"
   for number in $(jq -r '.[].number' <<<"$list"); do
     jq --argjson n "$number" --arg owner "$owner" \
       '.[] | select(.number == $n) | .merged_by //= {login: $owner}' <<<"$list" \

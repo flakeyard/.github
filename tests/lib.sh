@@ -11,19 +11,25 @@ mkdir -p "$GH_FIXTURES"
 output=$work/output
 failures=0
 
-# fixture METHOD PATH: store stdin as the answer of the stub to METHOD PATH.
-fixture() {
+# fixture_base METHOD PATH: print the path of the fixtures of METHOD PATH
+# without their extension, named as tests/bin/gh reads them.
+fixture_base() {
   local method=$1 path=$2 key
   key="$method $path"
-  cat >"$GH_FIXTURES/${key//\//_}.json"
+  printf '%s\n' "$GH_FIXTURES/${key//\//_}"
+}
+
+# fixture METHOD PATH: store stdin as the answer of the stub to METHOD PATH.
+fixture() {
+  local method=$1 path=$2
+  cat >"$(fixture_base "$method" "$path").json"
 }
 
 # fixture_status METHOD PATH STATUS: make the stub answer METHOD PATH with the
 # HTTP status STATUS.
 fixture_status() {
-  local method=$1 path=$2 status=$3 key
-  key="$method $path"
-  printf '%s\n' "$status" >"$GH_FIXTURES/${key//\//_}.status"
+  local method=$1 path=$2 status=$3
+  printf '%s\n' "$status" >"$(fixture_base "$method" "$path").status"
 }
 
 clear_fixtures() { rm -f -- "$GH_FIXTURES"/*; }

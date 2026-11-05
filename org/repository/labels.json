@@ -20,5 +20,10 @@
     "description": "Dependency updates"
   },
   { "name": "security", "color": "b60205", "description": "Security related" },
-  { "name": "breaking", "color": "000000", "description": "Breaking change" }
+  { "name": "breaking", "color": "000000", "description": "Breaking change" },
+  {
+    "name": "autorelease: abandoned",
+    "color": "ededed",
+    "description": "A merged release pull request whose version was abandoned"
+  }
 ]

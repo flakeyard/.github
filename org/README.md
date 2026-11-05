@@ -207,7 +207,11 @@ hand, by an organization owner:
   permissions of `organization/installations.json` and no organization
   permissions, installable only on this account. Install it on all repositories;
   `settings.sh` checks the installation. Record its identifiers with
-  `BOT_APP_ID=... BOT_CLIENT_ID=... ./settings.sh`.
+  `BOT_APP_ID=... BOT_CLIENT_ID=... ./settings.sh`. It needs `workflows: write`
+  because GitHub refuses the tag of a release made by an App without it, since
+  the commits of every tag carry workflow files. A permission added to the App
+  reaches the installation only after an owner accepts it in Settings → GitHub
+  Apps → `flakeyard-bot`.
 - **Private keys of the release App.** Generated on the App's page and stored as
   [Release bot key](#release-bot-key) says. Rotate the key once a year and at
   once when it may have been exposed.

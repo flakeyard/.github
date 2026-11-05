@@ -54,8 +54,6 @@ check() {
 # called CALL: whether a logged call contains CALL.
 called() { grep -qF -- "$1" "$GH_LOG"; }
 
-not_called() { ! called "$1"; }
-
 # sent CALL BODY: whether the call "gh CALL" was made with the JSON BODY.
 sent() {
   local call=$1 body=$2
@@ -71,8 +69,6 @@ exited() { ((status == $1)); }
 
 # printed TEXT: whether the output of the last run contains TEXT.
 printed() { grep -qF -- "$1" "$output"; }
-
-not_printed() { ! printed "$1"; }
 
 # not COMMAND...: whether COMMAND fails.
 not() { ! "$@"; }

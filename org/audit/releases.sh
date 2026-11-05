@@ -2,8 +2,9 @@
 # Audit the releases of the organization. Every release vX.Y.Z must be made by
 # the release bot, and its tag must point to the merge commit of a release pull
 # request: one from the branch release-please--branches--BASE, merged into BASE,
-# which is main or release/vN, and labelled "autorelease: tagged" (FY-0007,
-# FY-0030). A release that is not is reported, and the script then fails.
+# which is main or release/vN, labelled "autorelease: tagged" and merged by a
+# reviewer of the environment release (FY-0007, FY-0030, FY-0033). A release
+# that is not is reported, and the script then fails.
 #
 # Usage: releases.sh [repo...]
 #   Without arguments, audits every non-archived repository of $ORG.
@@ -16,16 +17,14 @@ set -euo pipefail
 
 org=${ORG:-flakeyard}
 bot_login=${BOT_LOGIN:-}
+here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+readonly reviewers_file=$here/../repository/environments/release-reviewers.json
 
 readonly version_tag='^v[0-9]+\.[0-9]+\.[0-9]+$'
 
-# A jq program that reads every pull request of a repository and prints one
-# line for every reason why the commit $commit is not the merge commit of a
-# release pull request. It prints nothing when one of the pull requests whose
-# merge commit is $commit is a release pull request. An unmerged pull request
-# has a merge commit too: the test merge of its head into its base.
+# The definitions of a release pull request, shared by the jq programs below.
 # shellcheck disable=SC2016 # jq variables, not shell ones
-readonly jq_release_problems='
+readonly jq_release_definitions='
   def release_branch: "release-please--branches--" + .base.ref;
   def maintained_base: .base.ref | test("^(main|release/v[1-9][0-9]*)$");
   def tagged: any(.labels[]; .name == "autorelease: tagged");
@@ -41,12 +40,28 @@ readonly jq_release_problems='
       (select(maintained_base | not)
         | "\($pr) is merged into \(.base.ref), not main or release/vN"),
       (select(tagged | not) | "\($pr) is not labelled autorelease: tagged");
+'
 
+# A jq program that reads every pull request of a repository and prints one
+# line for every reason why the commit $commit is not the merge commit of a
+# release pull request. It prints nothing when one of the pull requests whose
+# merge commit is $commit is a release pull request. An unmerged pull request
+# has a merge commit too: the test merge of its head into its base.
+# shellcheck disable=SC2016 # jq variables, not shell ones
+readonly jq_release_problems="$jq_release_definitions"'
   map(select(.merge_commit_sha == $commit)) as $merged
   | if $merged == [] then
       "commit \($commit) is not the merge commit of a pull request"
     elif any($merged[]; [problems] == []) then empty
     else $merged[] | problems end
+'
+
+# A jq program that prints the number of the release pull request, from the
+# same list, whose merge commit is $commit.
+# shellcheck disable=SC2016 # jq variables, not shell ones
+readonly jq_release_number="$jq_release_definitions"'
+  first(.[] | select(.merge_commit_sha == $commit and ([problems] == [])))
+  | .number
 '
 
 mismatches=0
@@ -108,6 +123,40 @@ release_problems() {
   jq -r --arg commit "$commit" "$jq_release_problems" "$file"
 }
 
+# release_number COMMIT FILE: print the number of the release pull request of
+# the list FILE whose merge commit is COMMIT.
+release_number() {
+  local commit=$1 file=$2
+  jq -r --arg commit "$commit" "$jq_release_number" "$file"
+}
+
+# merger REPO NUMBER: print the login of whoever merged the pull request NUMBER
+# of REPO. The list of pull requests does not carry it.
+merger() {
+  local repo=$1 number=$2
+  gh api "repos/$org/$repo/pulls/$number" --jq '.merged_by.login // "nobody"'
+}
+
+# is_release_reviewer LOGIN: whether LOGIN reviews the environment release.
+is_release_reviewer() {
+  local login=$1
+  jq -e --arg login "$login" \
+    'any(.[]; .type == "User" and .login == $login)' "$reviewers_file" >/dev/null
+}
+
+# audit_merger REPO TAG COMMIT FILE: report the release pull request of COMMIT
+# unless a reviewer of the environment release merged it.
+audit_merger() {
+  local repo=$1 tag=$2 commit=$3 file=$4 number login
+  number=$(release_number "$commit" "$file")
+  if ! login=$(merger "$repo" "$number"); then
+    report "$repo" "$tag" "cannot read who merged pull request #$number"
+    return
+  fi
+  is_release_reviewer "$login" \
+    || report "$repo" "$tag" "pull request #$number is merged by $login, not by a reviewer of release"
+}
+
 # report_each REPO TAG PROBLEMS: report every line of PROBLEMS.
 report_each() {
   local repo=$1 tag=$2 problems=$3 problem
@@ -129,7 +178,11 @@ audit_release() {
     return
   fi
   problems=$(release_problems "$commit" "$file")
-  report_each "$repo" "$tag" "$problems"
+  if [[ -n $problems ]]; then
+    report_each "$repo" "$tag" "$problems"
+  else
+    audit_merger "$repo" "$tag" "$commit" "$file"
+  fi
 }
 
 # audit_repository REPO DIR: check every release vX.Y.Z of REPO, with DIR for
@@ -150,6 +203,7 @@ for tool in gh jq; do
   command -v "$tool" >/dev/null || die "missing tool: $tool"
 done
 [[ -n $bot_login ]] || die "BOT_LOGIN is not set"
+[[ -r $reviewers_file ]] || die "cannot read $reviewers_file"
 
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT

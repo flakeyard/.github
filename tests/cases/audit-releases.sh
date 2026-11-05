@@ -9,6 +9,9 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../lib.sh"
 readonly bot='bot[bot]'
 readonly from_main=release-please--branches--main
 readonly tagged='autorelease: tagged'
+# The reviewer of the environment release in repository/environments/.
+owner=$(jq -r '.[0].login' "$root/org/repository/environments/release-reviewers.json")
+readonly owner
 
 # audit REPO...: run the audit with the release bot $bot.
 audit() { BOT_LOGIN=$bot run_org audit/releases.sh "$@"; }
@@ -49,11 +52,18 @@ pull() {
 }
 
 # pulls REPO PAGE: answer the page PAGE of the pull requests of REPO with the
-# pull requests on stdin.
+# pull requests on stdin, and each pull request on its own, merged by
+# .merged_by.login or else by $owner. Like the API, the list has no merged_by.
 pulls() {
-  local repo=$1 page=$2 suffix=''
+  local repo=$1 page=$2 suffix='' list number
   ((page > 1)) && suffix=.$page
-  jq -s . | fixture GET "repos/fy/$repo/pulls$suffix"
+  list=$(jq -s .)
+  jq 'map(del(.merged_by))' <<<"$list" | fixture GET "repos/fy/$repo/pulls$suffix"
+  for number in $(jq -r '.[].number' <<<"$list"); do
+    jq --argjson n "$number" --arg owner "$owner" \
+      '.[] | select(.number == $n) | .merged_by //= {login: $owner}' <<<"$list" \
+      | fixture GET "repos/fy/$repo/pulls/$number"
+  done
 }
 
 # A release made as FY-0007 says.
@@ -70,6 +80,7 @@ check "release: lists every pull request" \
 check "release: reads the tag, not a branch" \
   called "repos/fy/atom-x/commits/tags/v1.0.0"
 check "release: skips other tags" not_called commits/tags/nightly
+check "release: reads who merged it" called repos/fy/atom-x/pulls/1
 check "release: summary" \
   printed '1 releases of 1 repositories audited, 0 mismatches'
 clear_fixtures
@@ -86,6 +97,29 @@ check "forged tag: other head" \
 check "forged tag: no pull request" \
   printed '::error::atom-x v1.0.1: commit c9 is not the merge commit of a pull'
 check "forged tag: summary" printed '2 releases of 1 repositories audited, 2'
+clear_fixtures
+
+# A release pull request merged with the key of the bot, not by its reviewer.
+releases atom-x 1 "v1.0.0=$bot"
+tag atom-x v1.0.0 c1
+pull 1 c1 "$from_main" main "$tagged" \
+  | jq --arg bot "$bot" '.merged_by = {login: $bot}' | pulls atom-x 1
+audit atom-x
+check "merged by the bot: exits 1" exited 1
+check "merged by the bot: reported" \
+  printed "::error::atom-x v1.0.0: pull request #1 is merged by $bot, not by a reviewer of release"
+check "merged by the bot: reads the pull request" called repos/fy/atom-x/pulls/1
+clear_fixtures
+
+# Who merged a release pull request cannot be read.
+releases atom-x 1 "v1.0.0=$bot"
+tag atom-x v1.0.0 c1
+pull 1 c1 "$from_main" main "$tagged" | pulls atom-x 1
+fixture_status GET repos/fy/atom-x/pulls/1 502
+audit atom-x
+check "merger unknown: exits 1" exited 1
+check "merger unknown: reported" \
+  printed '::error::atom-x v1.0.0: cannot read who merged pull request #1'
 clear_fixtures
 
 # A release made by someone else than the bot.

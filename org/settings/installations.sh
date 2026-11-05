@@ -45,8 +45,7 @@ readonly jq_installation_problems='
 
 # installed_apps: print the installations of $org as one JSON list.
 installed_apps() {
-  gh api --paginate "orgs/$org/installations?per_page=100" \
-    --jq '.installations[]' | jq -s .
+  api_list "orgs/$org/installations?per_page=100" '.installations[]'
 }
 
 # check_installations: print every difference between installations.json and

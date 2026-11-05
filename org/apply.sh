@@ -14,17 +14,9 @@
 # shellcheck source-path=SCRIPTDIR
 set -euo pipefail
 
-org=${ORG:-flakeyard}
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-
-die() {
-  printf '%s\n' "$*" >&2
-  exit 1
-}
-
-for tool in gh jq; do
-  command -v "$tool" >/dev/null || die "missing tool: $tool"
-done
+# shellcheck source=lib.sh
+source "$here/lib.sh"
 
 bot_app_id=${BOT_APP_ID:-}
 if [[ -z $bot_app_id ]]; then
@@ -63,14 +55,7 @@ source "$here/apply/environments.sh"
 # shellcheck source=apply/security.sh
 source "$here/apply/security.sh"
 
-repos=("$@")
-if ((${#repos[@]} == 0)); then
-  # Assigned separately so that a failing gh stops the script.
-  all=$(gh repo list "$org" --limit 1000 --no-archived \
-    --json name --jq '.[].name')
-  [[ -n $all ]] || die "no repositories in $org"
-  mapfile -t repos <<<"$all"
-fi
+select_repositories "$@"
 
 for repo in "${repos[@]}"; do
   apply_settings "$repo"

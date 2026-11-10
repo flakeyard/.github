@@ -11,7 +11,7 @@ permissions: {}
 
 jobs:
   scorecard:
-    uses: flakeyard/workflow-scorecard/.github/workflows/scorecard.yaml@9eda9af77c8861e857c8b24349770f457b063e50 # v0.1.0
+    uses: flakeyard/workflow-scorecard/.github/workflows/scorecard.yaml@f9eb86263d345c576c05996dcfc7da255b9f2676 # v0.1.1
     permissions:
       actions: read # workflow runs, needed in private repositories
       contents: read # checkout and the repository through the API

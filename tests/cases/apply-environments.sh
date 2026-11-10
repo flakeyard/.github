@@ -32,60 +32,6 @@ environment() {
   }'
 }
 
-fixture GET "$policies" <<'EOF_JSON'
-{"branch_policies": [
-  {"id": 1, "name": "main", "type": "branch"},
-  {"id": 2, "name": "*", "type": "branch"},
-  {"id": 3, "name": "release/v*", "type": "tag"}
-]}
-EOF_JSON
-
-BOT_APP_ID=42 run_org apply.sh atom-x
-check "atom-x exits 0" exited 0
-check "atom-x is applied" printed 'atom-x: done'
-check "release requires the owner" \
-  sent "$(put release)" "$(environment "[$owner]")"
-check "cache requires no reviewer" sent "$(put cache)" "$(environment '[]')"
-check "keeps the policy main" not called "$policies/1"
-check "deletes the policy *" called "-X DELETE $policies/2"
-check "deletes the tag policy release/v*" called "-X DELETE $policies/3"
-check "adds the branch policy release/v*" \
-  called "-X POST $policies -f name=release/v\\* -f type=branch"
-
-BOT_APP_ID=42 run_org apply.sh action-y
-check "action-y gets release" called repos/fy/action-y/environments/release
-check "action-y gets no cache" not called repos/fy/action-y/environments/cache
-check "action-y gets no publish" \
-  not called repos/fy/action-y/environments/publish
-
-# The checks of an image build the image, whose paths are not pushed.
-BOT_APP_ID=42 run_org apply.sh image-w
-check "image-w gets release" called repos/fy/image-w/environments/release
-check "image-w gets no cache" not called repos/fy/image-w/environments/cache
-check "image-w: publish requires the owner of release" \
-  sent "$(put publish image-w)" "$(environment "[$owner]")"
-check "image-w: publish allows the policy main" \
-  called "-X POST $publish_policies -f name=main -f type=branch"
-check "image-w: publish allows the policy release/v*" \
-  called "-X POST $publish_policies -f name=release/v\\* -f type=branch"
-
-# Publication uses GITHUB_TOKEN, so the bot key stays in "release" only.
-printf 'key\n' >"$work/key.pem"
-BOT_APP_ID=42 BOT_PRIVATE_KEY_FILE=$work/key.pem run_org apply.sh image-w
-check "image-w with the key: release gets it" \
-  called 'secret set APP_PRIVATE_KEY --repo fy/image-w --env release'
-check "image-w with the key: publish gets no secret" not called '--env publish'
-
-BOT_APP_ID=42 run_org apply.sh template-v
-check "template-v gets cache" called repos/fy/template-v/environments/cache
-check "template-v gets no publish" \
-  not called repos/fy/template-v/environments/publish
-
-BOT_APP_ID=42 run_org apply.sh decisions
-check "decisions gets no environment" \
-  not called repos/fy/decisions/environments/
-check "decisions: no warning" not printed 'warning:'
-
 # environments REPO NAME...: answer the listing of environments of REPO with
 # the environments NAME.
 environments() {
@@ -97,23 +43,91 @@ environments() {
     | fixture GET "repos/fy/$repo/environments"
 }
 
-environments image-w release publish cache
-BOT_APP_ID=42 run_org apply.sh image-w
-check "leftover cache: exits 0" exited 0
-check "leftover cache: warns" \
-  printed 'warning: image-w: environments not in repository/environments/:'
-check "leftover cache: names it" printed cache
-check "leftover cache: keeps it" not called "-X DELETE repos/fy/image-w"
-check "leftover cache: release is managed" not printed release
-check "leftover cache: publish is managed" not printed publish
-check "leftover cache: is applied" printed 'image-w: done'
+# apply_to NAME EXPECTED REPO [NAME=VALUE...]: run apply.sh on REPO with the
+# bot app 42 and the variables given.
+apply_to() {
+  local name=$1 expected=$2 repo=$3
+  shift 3
+  run "$name" "$expected" org/apply.sh BOT_APP_ID=42 "$@" -- "$repo"
+}
 
-environments decisions release
-BOT_APP_ID=42 run_org apply.sh decisions
-check "unreleased: warns about release" printed release
-check "unreleased: paginates" \
-  called "--paginate repos/fy/decisions/environments\\?per_page=100"
-check "unreleased: creates none" \
-  not called "-X PUT repos/fy/decisions/environments/"
-
+setup_org
+fixture GET "$policies" <<'EOF_JSON'
+{"branch_policies": [
+  {"id": 1, "name": "main", "type": "branch"},
+  {"id": 2, "name": "*", "type": "branch"},
+  {"id": 3, "name": "release/v*", "type": "tag"}
+]}
+EOF_JSON
+apply_to "atom-x" ok atom-x
+expect message 'atom-x: done'
+# release requires the owner, cache no reviewer.
+expect_sent "$(put release)" "$(environment "[$owner]")"
+expect_sent "$(put cache)" "$(environment '[]')"
+# The policy main is kept, the policy * and the tag policy release/v* are
+# deleted, and the branch policy release/v* is added.
+expect no-call "$policies/1"
+expect call "-X DELETE $policies/2"
+expect call "-X DELETE $policies/3"
+expect call "-X POST $policies -f name=release/v\\* -f type=branch"
 finish
+
+setup_org
+apply_to "action-y gets only release" ok action-y
+expect call repos/fy/action-y/environments/release
+expect no-call repos/fy/action-y/environments/cache
+expect no-call repos/fy/action-y/environments/publish
+finish
+
+# The checks of an image build the image, whose paths are not pushed.
+setup_org
+apply_to "image-w gets release and publish" ok image-w
+expect call repos/fy/image-w/environments/release
+expect no-call repos/fy/image-w/environments/cache
+# publish requires the owner of release, and allows main and release/v*.
+expect_sent "$(put publish image-w)" "$(environment "[$owner]")"
+expect call "-X POST $publish_policies -f name=main -f type=branch"
+expect call "-X POST $publish_policies -f name=release/v\\* -f type=branch"
+finish
+
+# Publication uses GITHUB_TOKEN, so the bot key stays in "release" only.
+setup_org
+printf 'key\n' >"$work/key.pem"
+apply_to "image-w with the key" ok image-w BOT_PRIVATE_KEY_FILE="$work/key.pem"
+expect call 'secret set APP_PRIVATE_KEY --repo fy/image-w --env release'
+expect no-call '--env publish'
+finish
+
+setup_org
+apply_to "template-v gets cache" ok template-v
+expect call repos/fy/template-v/environments/cache
+expect no-call repos/fy/template-v/environments/publish
+finish
+
+setup_org
+apply_to "decisions gets no environment" ok decisions
+expect no-call repos/fy/decisions/environments/
+expect no-message 'warning:'
+finish
+
+setup_org
+environments image-w release publish cache
+apply_to "leftover cache" ok image-w
+expect message 'warning: image-w: environments not in repository/environments/:'
+expect message cache
+expect no-call "-X DELETE repos/fy/image-w"
+# release and publish are managed.
+expect no-message release
+expect no-message publish
+expect message 'image-w: done'
+finish
+
+setup_org
+environments decisions release
+apply_to "unreleased" ok decisions
+expect message release
+expect call "--paginate repos/fy/decisions/environments\\?per_page=100"
+expect no-call "-X PUT repos/fy/decisions/environments/"
+finish
+
+conclude

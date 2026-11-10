@@ -30,26 +30,30 @@ allows_pull_requests() {
     and .default_workflow_permissions == "read"' "$file" >/dev/null
 }
 
-check "the organization lets repositories allow it" \
+setup
+run_lib "the organization lets repositories allow it" ok "" \
   allows_pull_requests "$organization"
+finish
 
 for repo in atom-x action-y workflow-z image-w template-v renovate-config; do
-  BOT_APP_ID=42 run_org apply.sh "$repo"
-  check "$repo exits 0" exited 0
-  check "$repo creates pull requests" sent "$(put "$repo")" "$(permissions true)"
+  setup_org
+  run "$repo creates pull requests" ok org/apply.sh BOT_APP_ID=42 -- "$repo"
+  expect_sent "$(put "$repo")" "$(permissions true)"
+  finish
 done
 
 for repo in .github decisions probe-renovate; do
-  BOT_APP_ID=42 run_org apply.sh "$repo"
-  check "$repo exits 0" exited 0
-  check "$repo creates no pull requests" \
-    sent "$(put "$repo")" "$(permissions false)"
+  setup_org
+  run "$repo creates no pull requests" ok org/apply.sh BOT_APP_ID=42 -- "$repo"
+  expect_sent "$(put "$repo")" "$(permissions false)"
+  finish
 done
 
 # The organization forbids the flag: GitHub answers 409 Conflict.
+setup_org
 fixture_status PUT repos/fy/atom-x/actions/permissions/workflow "$http_conflict"
-BOT_APP_ID=42 run_org apply.sh atom-x
-check "forbidden: exits non-zero" not exited 0
-check "forbidden: atom-x is not done" not printed 'atom-x: done'
-
+run "forbidden" fail org/apply.sh BOT_APP_ID=42 -- atom-x
+expect no-message 'atom-x: done'
 finish
+
+conclude

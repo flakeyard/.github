@@ -1,22 +1,36 @@
 # shellcheck shell=bash
-# Helpers of the tests: run a script of org/ for the organization "fy" with the
-# stub of gh, then check the calls that it made. Sourced by the tests.
+# Helpers of the tests, on case.sh and checks.sh of internal/testing of the
+# shell library in SHELL_LIB: run a script of org/ for the organization "fy"
+# with the stub of gh in tests/bin, which logs every call to CALLS and answers
+# from the fixtures of the test, then check the calls that it made. Sourced by
+# the tests. A case is
+#
+#   setup_org; fixture ...; run NAME EXPECTED org/SCRIPT [NAME=VALUE...] [-- ARG...]; expect ...; finish
+# shellcheck disable=SC2154 # work and env_vars come from setup of the harness.
 
 tests=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 root=$(dirname -- "$tests")
-work=$(mktemp -d)
-trap 'rm -rf -- "$work"' EXIT
-export GH_LOG=$work/gh.log GH_FIXTURES=$work/fixtures
-mkdir -p "$GH_FIXTURES"
-output=$work/output
-failures=0
+# shellcheck source=/dev/null
+source "${SHELL_LIB:?}/internal/testing/case.sh"
+# shellcheck source=/dev/null
+source "$SHELL_LIB/internal/testing/checks.sh"
+# The scripts that run takes paths in.
+# shellcheck disable=SC2034 # read by checks.sh
+code_root=$root
+
+# setup_org: setup for one case: the stub of gh first on PATH and the
+# organization fy.
+setup_org() {
+  setup
+  apply PATH="$tests/bin:$TESTING_BIN:$HOST_PATH" ORG=fy
+}
 
 # fixture_base METHOD PATH: print the path of the fixtures of METHOD PATH
 # without their extension, named as tests/bin/gh reads them.
 fixture_base() {
   local method=$1 path=$2 key
   key="$method $path"
-  printf '%s\n' "$GH_FIXTURES/${key//\//_}"
+  printf '%s\n' "$work/fixtures/${key//\//_}"
 }
 
 # fixture METHOD PATH: store stdin as the answer of the stub to METHOD PATH.
@@ -32,55 +46,14 @@ fixture_status() {
   printf '%s\n' "$status" >"$(fixture_base "$method" "$path").status"
 }
 
-clear_fixtures() { rm -f -- "$GH_FIXTURES"/*; }
-
-# run_org SCRIPT ARG...: run org/SCRIPT with the stub. Its output is in
-# $output and its exit status in $status.
-run_org() {
-  local script=$1
-  shift
-  : >"$GH_LOG"
-  status=0
-  PATH="$tests/bin:$PATH" ORG=fy bash "$root/org/$script" "$@" >"$output" 2>&1 \
-    || status=$?
-}
-
-# check DESCRIPTION COMMAND...: report whether COMMAND succeeds.
-check() {
-  local description=$1
-  shift
-  if "$@"; then
-    printf 'ok   %s\n' "$description"
-  else
-    printf 'FAIL %s\n' "$description"
-    failures=$((failures + 1))
-  fi
-}
-
-# called CALL: whether a logged call contains CALL.
-called() { grep -qF -- "$1" "$GH_LOG"; }
-
-# sent CALL BODY: whether the call "gh CALL" was made with the JSON BODY.
-sent() {
+# expect_sent CALL BODY: the last run made the call "gh CALL" with the JSON
+# BODY.
+expect_sent() {
   local call=$1 body=$2
+  [[ -n $current ]] || return 0
   awk -v call="gh $call" -v body="  body: $body" '
     previous == call && $0 == body { found = 1 }
     { previous = $0 }
     END { exit !found }
-  ' "$GH_LOG"
-}
-
-# exited STATUS: whether the last run exited with STATUS.
-exited() { ((status == $1)); }
-
-# printed TEXT: whether the output of the last run contains TEXT.
-printed() { grep -qF -- "$1" "$output"; }
-
-# not COMMAND...: whether COMMAND fails.
-not() { ! "$@"; }
-
-# finish: print the number of failures and succeed only without any.
-finish() {
-  printf '%d failures\n' "$failures"
-  ((failures == 0))
+  ' "$work/calls" || report "no call 'gh $call' with the body $body"
 }

@@ -16,7 +16,10 @@ applied to every repository by a script.
 | `repository/rulesets/`       | `apply.sh`    | branch and tag protection     |
 
 Only `settings.sh`, `apply.sh` and `audit/releases.sh` are run, the last by the
-workflow `audit` too. `apply.sh` sources one file per concern from `apply/`:
+workflow `audit` too. All three first source `lib.sh`: it checks that gh and jq
+are installed, reads a list from every page of an API path, and lists the
+non-archived repositories that `apply.sh` and the audit work on when no
+repository is given. `apply.sh` sources one file per concern from `apply/`:
 `settings.sh`, `actions.sh`, `labels.sh`, `topics.sh`, `rulesets.sh`,
 `environments.sh` and `security.sh` apply one part each, and `http.sh`,
 `glob.sh` and `contains.sh` are helpers they share. `settings.sh` sources

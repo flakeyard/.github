@@ -16,16 +16,23 @@ readonly owner
 # audit REPO...: run the audit with the release bot $bot.
 audit() { BOT_LOGIN=$bot run_org audit/releases.sh "$@"; }
 
-# releases REPO PAGE TAG=AUTHOR...: answer the page PAGE (1 or more) of the
-# releases of REPO.
+# fixture_page PATH PAGE: store stdin as the answer of the stub to the page
+# PAGE (1 or more) of GET PATH.
+fixture_page() {
+  local path=$1 page=$2
+  ((page == 1)) || path=$path.$page
+  fixture GET "$path"
+}
+
+# releases REPO PAGE TAG=AUTHOR...: answer the page PAGE of the releases of
+# REPO.
 releases() {
-  local repo=$1 page=$2 pair suffix=''
+  local repo=$1 page=$2 pair
   shift 2
-  ((page > 1)) && suffix=.$page
   for pair; do
     jq -n --arg tag "${pair%%=*}" --arg login "${pair#*=}" \
       '{tag_name: $tag, author: {login: $login}}'
-  done | jq -s . | fixture GET "repos/fy/$repo/releases$suffix"
+  done | jq -s . | fixture_page "repos/fy/$repo/releases" "$page"
 }
 
 # tag REPO TAG COMMIT: make the tag TAG of REPO point to COMMIT.
@@ -55,10 +62,10 @@ pull() {
 # pull requests on stdin, and each pull request on its own, merged by
 # .merged_by.login or else by $owner. Like the API, the list has no merged_by.
 pulls() {
-  local repo=$1 page=$2 suffix='' list number
-  ((page > 1)) && suffix=.$page
+  local repo=$1 page=$2 list number
   list=$(jq -s .)
-  jq 'map(del(.merged_by))' <<<"$list" | fixture GET "repos/fy/$repo/pulls$suffix"
+  jq 'map(del(.merged_by))' <<<"$list" \
+    | fixture_page "repos/fy/$repo/pulls" "$page"
   for number in $(jq -r '.[].number' <<<"$list"); do
     jq --argjson n "$number" --arg owner "$owner" \
       '.[] | select(.number == $n) | .merged_by //= {login: $owner}' <<<"$list" \
@@ -72,14 +79,14 @@ tag atom-x v1.0.0 c1
 pull 1 c1 "$from_main" main "$tagged" | pulls atom-x 1
 audit atom-x
 check "release: exits 0" exited 0
-check "release: reports nothing" not_printed '::error::'
+check "release: reports nothing" not printed '::error::'
 check "release: paginates releases" \
   called "--paginate repos/fy/atom-x/releases\\?per_page=100"
 check "release: lists every pull request" \
   called "--paginate repos/fy/atom-x/pulls\\?state=all\\&per_page=100"
 check "release: reads the tag, not a branch" \
   called "repos/fy/atom-x/commits/tags/v1.0.0"
-check "release: skips other tags" not_called commits/tags/nightly
+check "release: skips other tags" not called commits/tags/nightly
 check "release: reads who merged it" called repos/fy/atom-x/pulls/1
 check "release: summary" \
   printed '1 releases of 1 repositories audited, 0 mismatches'
@@ -130,7 +137,7 @@ audit atom-x
 check "other author: exits 1" exited 1
 check "other author: reported" \
   printed "::error::atom-x v1.0.0: released by mallory, not $bot"
-check "other author: the commit is fine" not_printed 'pull request'
+check "other author: the commit is fine" not printed 'pull request'
 clear_fixtures
 
 # The test merge commit of an open release pull request.
@@ -158,7 +165,7 @@ tag atom-x v1.2.0 c7
 } | pulls atom-x 1
 audit atom-x
 check "bases: exits 1" exited 1
-check "bases: release/v1 is fine" not_printed 'atom-x v1.0.0'
+check "bases: release/v1 is fine" not printed 'atom-x v1.0.0'
 check "bases: release/v0 is not maintained" \
   printed 'pull request #5 is merged into release/v0, not main or release/vN'
 check "bases: the label is required" \
@@ -167,24 +174,17 @@ check "bases: a fork is reported" \
   printed 'pull request #7 is from mallory/atom-x'
 clear_fixtures
 
-# Every page of repositories, releases and pull requests.
-jq -n '[{name: "atom-x", archived: false}, {name: "old", archived: true}]' \
-  | fixture GET orgs/fy/repos
-jq -n '[{name: "atom-y", archived: false}]' | fixture GET orgs/fy/repos.2
+# Every page of releases and pull requests. The repositories are listed by
+# lib.sh, tested in repositories.sh.
 releases atom-x 1 "v1.0.0=$bot"
 releases atom-x 2 "v1.1.0=$bot"
 tag atom-x v1.0.0 c1
 tag atom-x v1.1.0 c8
 pull 1 c1 "$from_main" main "$tagged" | pulls atom-x 1
 pull 8 c8 "$from_main" main "$tagged" | pulls atom-x 2
-audit
+audit atom-x atom-y
 check "pages: exits 0" exited 0
-check "pages: paginates repositories" \
-  called "--paginate orgs/fy/repos\\?per_page=100"
-check "pages: skips archived repositories" not_called repos/fy/old/
-check "pages: audits the second page of repositories" \
-  called repos/fy/atom-y/releases
-check "pages: no releases, no pull requests" not_called repos/fy/atom-y/pulls
+check "pages: no releases, no pull requests" not called repos/fy/atom-y/pulls
 check "pages: the release of the second page" called commits/tags/v1.1.0
 check "pages: summary" \
   printed '2 releases of 2 repositories audited, 0 mismatches'
@@ -212,7 +212,7 @@ clear_fixtures
 fixture_status GET repos/fy/atom-x/releases 500
 audit atom-x
 check "listing fails: exits non-zero" not exited 0
-check "listing fails: no summary" not_printed 'audited'
+check "listing fails: no summary" not printed 'audited'
 clear_fixtures
 
 run_org audit/releases.sh atom-x

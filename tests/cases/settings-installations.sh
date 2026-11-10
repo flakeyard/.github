@@ -51,9 +51,9 @@ check "drift: unlisted permission" \
 check "drift: higher permission" \
   printed 'flakeyard-bot: permission contents is admin, allowed write'
 check "drift: a missing permission is fine" \
-  not_printed 'permission issues'
+  not printed 'permission issues'
 check "drift: unlisted App" printed 'stranger: installed, but not listed'
-check "drift: no success" not_printed 'checked'
+check "drift: no success" not printed 'checked'
 
 # The release bot writes workflows: GitHub refuses the tag of a release made by
 # an App otherwise, since the commits of the tag carry workflow files.
@@ -61,7 +61,7 @@ installed 'map(if .app_slug == "flakeyard-bot"
   then .permissions.workflows = "write" else . end)'
 run_org settings.sh
 check "bot workflows: exits 0" exited 0
-check "bot workflows: not drift" not_printed 'permission workflows'
+check "bot workflows: not drift" not printed 'permission workflows'
 
 installed 'map(if .app_slug == "renovate"
   then . + {suspended_at: "2026-11-01T00:00:00Z"} else . end)'
@@ -69,7 +69,7 @@ run_org settings.sh
 check "suspended: exits 1" exited 1
 check "suspended: reported" \
   printed 'renovate: suspended since 2026-11-01T00:00:00Z'
-check "suspended: no success" not_printed 'checked'
+check "suspended: no success" not printed 'checked'
 
 installed 'map(. + {suspended_at: null})'
 run_org settings.sh
@@ -78,6 +78,6 @@ check "not suspended: exits 0" exited 0
 fixture_status GET "$installations" 500
 run_org settings.sh
 check "listing fails: exits non-zero" not exited 0
-check "listing fails: no success" not_printed 'checked'
+check "listing fails: no success" not printed 'checked'
 
 finish

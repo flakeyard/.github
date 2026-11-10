@@ -11,17 +11,9 @@
 # shellcheck source-path=SCRIPTDIR
 set -euo pipefail
 
-org=${ORG:-flakeyard}
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-
-die() {
-  printf '%s\n' "$*" >&2
-  exit 1
-}
-
-for tool in gh jq; do
-  command -v "$tool" >/dev/null || die "missing tool: $tool"
-done
+# shellcheck source=lib.sh
+source "$here/lib.sh"
 
 declare -A patterns=([BOT_APP_ID]='^[0-9]+$' [BOT_CLIENT_ID]='^Iv[0-9A-Za-z.]+$')
 # Validate before anything is changed.

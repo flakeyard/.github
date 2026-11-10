@@ -50,6 +50,6 @@ done
 fixture_status PUT repos/fy/atom-x/actions/permissions/workflow "$http_conflict"
 BOT_APP_ID=42 run_org apply.sh atom-x
 check "forbidden: exits non-zero" not exited 0
-check "forbidden: atom-x is not done" not_printed 'atom-x: done'
+check "forbidden: atom-x is not done" not printed 'atom-x: done'
 
 finish

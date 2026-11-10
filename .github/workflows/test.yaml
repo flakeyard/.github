@@ -30,9 +30,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # The harness of the tests, at the commit that the tests read here.
+      - id: lib
+        uses: flakeyard/action-shell-lib@4c8422d8a7fdb2b097b349f643efa8d196e0406b # v0.1.2
       # Needs bash and jq, which the runner has; the stub of gh answers
       # every call, so no token is used.
-      - run: tests/run.sh
+      - env:
+          SHELL_LIB: ${{ steps.lib.outputs.path }}
+        run: tests/run.sh
 
   check:
     needs: [unit] # every other job of the workflow

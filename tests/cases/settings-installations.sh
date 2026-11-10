@@ -15,69 +15,72 @@ installed() {
     | fixture GET "$installations"
 }
 
-# applied: whether the settings were applied before the check.
-applied() {
-  called '-X PATCH orgs/fy --input settings.json' \
-    && called 'orgs/fy/actions/permissions/self-hosted-runners'
+# run_settings NAME EXPECTED: run settings.sh.
+run_settings() {
+  local name=$1 expected=$2
+  run "$name" "$expected" org/settings.sh
 }
 
+setup_org
 installed .
-run_org settings.sh
-check "as listed: exits 0" exited 0
-check "as listed: paginates" called "--paginate $installations\\?per_page=100"
-check "as listed: reports the check" \
-  printed 'installations of GitHub Apps checked'
+run_settings "as listed" ok
+expect call "--paginate $installations\\?per_page=100"
+expect message 'installations of GitHub Apps checked'
+finish
 
+setup_org
 installed '.[:1]'
 jq '{installations: .[1:]}' "$listed" \
   | fixture GET "$installations.2"
-run_org settings.sh
-check "two pages: exits 0" exited 0
-clear_fixtures
+run_settings "two pages" ok
+finish
 
+setup_org
 installed 'map(select(.app_slug == "flakeyard-bot")
   | .repository_selection = "selected"
   | .permissions += {administration: "write", contents: "admin"}
   | del(.permissions.issues))
   + [{app_slug: "stranger", repository_selection: "all", permissions: {}}]'
-run_org settings.sh
-check "drift: exits 1" exited 1
-check "drift: settings are applied" applied
-check "drift: not installed" printed 'renovate: not installed'
-check "drift: selected repositories" \
-  printed 'flakeyard-bot: installed for selected repositories, not all'
-check "drift: unlisted permission" \
-  printed 'flakeyard-bot: permission administration is write, allowed none'
-check "drift: higher permission" \
-  printed 'flakeyard-bot: permission contents is admin, allowed write'
-check "drift: a missing permission is fine" \
-  not printed 'permission issues'
-check "drift: unlisted App" printed 'stranger: installed, but not listed'
-check "drift: no success" not printed 'checked'
+run_settings "drift" fail
+# The settings are applied before the check.
+expect call '-X PATCH orgs/fy --input settings.json'
+expect call 'orgs/fy/actions/permissions/self-hosted-runners'
+expect message 'renovate: not installed'
+expect message 'flakeyard-bot: installed for selected repositories, not all'
+expect message 'flakeyard-bot: permission administration is write, allowed none'
+expect message 'flakeyard-bot: permission contents is admin, allowed write'
+# A missing permission is fine.
+expect no-message 'permission issues'
+expect message 'stranger: installed, but not listed'
+expect no-message 'checked'
+finish
 
 # The release bot writes workflows: GitHub refuses the tag of a release made by
 # an App otherwise, since the commits of the tag carry workflow files.
+setup_org
 installed 'map(if .app_slug == "flakeyard-bot"
   then .permissions.workflows = "write" else . end)'
-run_org settings.sh
-check "bot workflows: exits 0" exited 0
-check "bot workflows: not drift" not printed 'permission workflows'
+run_settings "bot workflows" ok
+expect no-message 'permission workflows'
+finish
 
+setup_org
 installed 'map(if .app_slug == "renovate"
   then . + {suspended_at: "2026-11-01T00:00:00Z"} else . end)'
-run_org settings.sh
-check "suspended: exits 1" exited 1
-check "suspended: reported" \
-  printed 'renovate: suspended since 2026-11-01T00:00:00Z'
-check "suspended: no success" not printed 'checked'
-
-installed 'map(. + {suspended_at: null})'
-run_org settings.sh
-check "not suspended: exits 0" exited 0
-
-fixture_status GET "$installations" 500
-run_org settings.sh
-check "listing fails: exits non-zero" not exited 0
-check "listing fails: no success" not printed 'checked'
-
+run_settings "suspended" fail
+expect message 'renovate: suspended since 2026-11-01T00:00:00Z'
+expect no-message 'checked'
 finish
+
+setup_org
+installed 'map(. + {suspended_at: null})'
+run_settings "not suspended" ok
+finish
+
+setup_org
+fixture_status GET "$installations" 500
+run_settings "listing fails" fail
+expect no-message 'checked'
+finish
+
+conclude

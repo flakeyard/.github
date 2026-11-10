@@ -22,49 +22,54 @@ release_tags() {
     "$root/org/repository/rulesets/release-tags.json"
 }
 
+# apply_rulesets NAME EXPECTED: run apply.sh on atom-x with the bot app 42.
+apply_rulesets() {
+  local name=$1 expected=$2
+  run "$name" "$expected" org/apply.sh BOT_APP_ID=42 -- atom-x
+}
+
+setup_org
 listed
-BOT_APP_ID=42 run_org apply.sh atom-x
-check "none: exits 0" exited 0
-check "none: lists only the repository's own" \
-  called "--paginate $rulesets\\?includes_parents=false\\&per_page=100"
-check "none: creates main" \
-  sent "api --silent -X POST $rulesets --input -" \
+apply_rulesets "none" ok
+expect call "--paginate $rulesets\\?includes_parents=false\\&per_page=100"
+expect_sent "api --silent -X POST $rulesets --input -" \
   "$(jq -c . "$root/org/repository/rulesets/main.json")"
-check "none: puts the bot app id" \
-  sent "api --silent -X POST $rulesets --input -" "$(release_tags)"
-check "none: replaces nothing" not called "-X PUT $rulesets/"
-check "none: no warning" not printed 'warning:'
+expect_sent "api --silent -X POST $rulesets --input -" "$(release_tags)"
+expect no-call "-X PUT $rulesets/"
+expect no-message 'warning:'
+finish
 
+setup_org
 listed main=1 release-branches=2 release-tags=3 version-branches=4
-BOT_APP_ID=42 run_org apply.sh atom-x
-check "all: exits 0" exited 0
-check "all: replaces main by id" called "-X PUT $rulesets/1 --input -"
-check "all: replaces release-tags by id" \
-  sent "api --silent -X PUT $rulesets/3 --input -" "$(release_tags)"
-check "all: creates none" not called "-X POST $rulesets"
+apply_rulesets "all" ok
+expect call "-X PUT $rulesets/1 --input -"
+expect_sent "api --silent -X PUT $rulesets/3 --input -" "$(release_tags)"
+expect no-call "-X POST $rulesets"
+finish
 
+setup_org
 listed main=1
 jq -n '[{id: 3, name: "release-tags", source_type: "Repository"}]' \
   | fixture GET "$rulesets.2"
-BOT_APP_ID=42 run_org apply.sh atom-x
-check "two pages: replaces release-tags of page 2" \
-  called "-X PUT $rulesets/3 --input -"
-clear_fixtures
-
-listed main=1 hotfix=7
-BOT_APP_ID=42 run_org apply.sh atom-x
-check "unmanaged: exits 0" exited 0
-check "unmanaged: warns" \
-  printed 'warning: atom-x: rulesets not in repository/rulesets/:'
-check "unmanaged: names it" printed hotfix
-check "unmanaged: keeps it" not called "$rulesets/7"
-check "unmanaged: is applied" printed 'atom-x: done'
-
-listed main=1 main=2
-BOT_APP_ID=42 run_org apply.sh atom-x
-check "duplicate: exits non-zero" not exited 0
-check "duplicate: names it" printed 'several rulesets are named main'
-check "duplicate: replaces nothing" not called "-X PUT $rulesets/"
-check "duplicate: is not done" not printed 'atom-x: done'
-
+apply_rulesets "two pages: replaces release-tags of page 2" ok
+expect call "-X PUT $rulesets/3 --input -"
 finish
+
+setup_org
+listed main=1 hotfix=7
+apply_rulesets "unmanaged" ok
+expect message 'warning: atom-x: rulesets not in repository/rulesets/:'
+expect message hotfix
+expect no-call "$rulesets/7"
+expect message 'atom-x: done'
+finish
+
+setup_org
+listed main=1 main=2
+apply_rulesets "duplicate" fail
+expect message 'several rulesets are named main'
+expect no-call "-X PUT $rulesets/"
+expect no-message 'atom-x: done'
+finish
+
+conclude

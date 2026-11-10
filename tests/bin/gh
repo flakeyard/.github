@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Stub of gh for the tests. Logs every call to $GH_LOG, with the body read
-# from stdin on the next line, and answers "gh api" from $GH_FIXTURES.
+# Stub of gh for the tests. Logs every call to $CALLS, with the body read
+# from stdin on the next line, and answers "gh api" from $FIXTURES.
 #
 # The answer to "METHOD PATH" is the file "METHOD PATH.json", where "/" in PATH
 # is "_" and the query string is dropped; with --paginate, the next pages are
@@ -15,14 +15,14 @@ log_call() {
     printf '%s' gh
     printf ' %q' "$@"
     printf '\n'
-  } >>"$GH_LOG"
+  } >>"$CALLS"
 }
 
 # fixture_base METHOD PATH: print the fixture path without its extension.
 fixture_base() {
   local method=$1 path=$2 key
   key="$method ${path%%\?*}"
-  printf '%s/%s\n' "$GH_FIXTURES" "${key//\//_}"
+  printf '%s/%s\n' "$FIXTURES" "${key//\//_}"
 }
 
 # pages BASE PAGINATE: print the fixture files of every page.
@@ -68,7 +68,7 @@ api() {
     esac
     shift
   done
-  [[ $input == - ]] && printf '  body: %s\n' "$(jq -c .)" >>"$GH_LOG"
+  [[ $input == - ]] && printf '  body: %s\n' "$(jq -c .)" >>"$CALLS"
   answer "$(fixture_base "$method" "$path")" "$paginate" "$include" "$jq_expr"
 }
 

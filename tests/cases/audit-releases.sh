@@ -13,8 +13,13 @@ readonly tagged='autorelease: tagged'
 owner=$(jq -r '.[0].login' "$root/org/repository/environments/release-reviewers.json")
 readonly owner
 
-# audit REPO...: run the audit with the release bot $bot.
-audit() { BOT_LOGIN=$bot run_org audit/releases.sh "$@"; }
+# audit NAME EXPECTED REPO...: run the audit of REPO with the release bot
+# $bot.
+audit() {
+  local name=$1 expected=$2
+  shift 2
+  run "$name" "$expected" org/audit/releases.sh BOT_LOGIN="$bot" -- "$@"
+}
 
 # fixture_page PATH PAGE: store stdin as the answer of the stub to the page
 # PAGE (1 or more) of GET PATH.
@@ -74,83 +79,78 @@ pulls() {
 }
 
 # A release made as FY-0007 says.
+setup_org
 releases atom-x 1 "v1.0.0=$bot" "nightly=someone"
 tag atom-x v1.0.0 c1
 pull 1 c1 "$from_main" main "$tagged" | pulls atom-x 1
-audit atom-x
-check "release: exits 0" exited 0
-check "release: reports nothing" not printed '::error::'
-check "release: paginates releases" \
-  called "--paginate repos/fy/atom-x/releases\\?per_page=100"
-check "release: lists every pull request" \
-  called "--paginate repos/fy/atom-x/pulls\\?state=all\\&per_page=100"
-check "release: reads the tag, not a branch" \
-  called "repos/fy/atom-x/commits/tags/v1.0.0"
-check "release: skips other tags" not called commits/tags/nightly
-check "release: reads who merged it" called repos/fy/atom-x/pulls/1
-check "release: summary" \
-  printed '1 releases of 1 repositories audited, 0 mismatches'
-clear_fixtures
+audit "release" ok atom-x
+expect no-message '::error::'
+expect call "--paginate repos/fy/atom-x/releases\\?per_page=100"
+# Every pull request is listed; the tag, not a branch, is read, and other tags
+# are skipped.
+expect call "--paginate repos/fy/atom-x/pulls\\?state=all\\&per_page=100"
+expect call "repos/fy/atom-x/commits/tags/v1.0.0"
+expect no-call commits/tags/nightly
+# Who merged it is read.
+expect call repos/fy/atom-x/pulls/1
+expect message '1 releases of 1 repositories audited, 0 mismatches'
+finish
 
 # A tag moved to a commit that no release pull request merged.
+setup_org
 releases atom-x 1 "v1.0.0=$bot" "v1.0.1=$bot"
 tag atom-x v1.0.0 c2
 tag atom-x v1.0.1 c9
 pull 2 c2 feat/x main "$tagged" | pulls atom-x 1
-audit atom-x
-check "forged tag: exits 1" exited 1
-check "forged tag: other head" \
-  printed "::error::atom-x v1.0.0: pull request #2 is from feat/x, not $from_main"
-check "forged tag: no pull request" \
-  printed '::error::atom-x v1.0.1: commit c9 is not the merge commit of a pull'
-check "forged tag: summary" printed '2 releases of 1 repositories audited, 2'
-clear_fixtures
+audit "forged tag" fail atom-x
+expect message "::error::atom-x v1.0.0: pull request #2 is from feat/x, not $from_main"
+expect message '::error::atom-x v1.0.1: commit c9 is not the merge commit of a pull'
+expect message '2 releases of 1 repositories audited, 2'
+finish
 
 # A release pull request merged with the key of the bot, not by its reviewer.
+setup_org
 releases atom-x 1 "v1.0.0=$bot"
 tag atom-x v1.0.0 c1
 pull 1 c1 "$from_main" main "$tagged" \
   | jq --arg bot "$bot" '.merged_by = {login: $bot}' | pulls atom-x 1
-audit atom-x
-check "merged by the bot: exits 1" exited 1
-check "merged by the bot: reported" \
-  printed "::error::atom-x v1.0.0: pull request #1 is merged by $bot, not by a reviewer of release"
-check "merged by the bot: reads the pull request" called repos/fy/atom-x/pulls/1
-clear_fixtures
+audit "merged by the bot" fail atom-x
+expect message "::error::atom-x v1.0.0: pull request #1 is merged by $bot, not by a reviewer of release"
+expect call repos/fy/atom-x/pulls/1
+finish
 
 # Who merged a release pull request cannot be read.
+setup_org
 releases atom-x 1 "v1.0.0=$bot"
 tag atom-x v1.0.0 c1
 pull 1 c1 "$from_main" main "$tagged" | pulls atom-x 1
 fixture_status GET repos/fy/atom-x/pulls/1 502
-audit atom-x
-check "merger unknown: exits 1" exited 1
-check "merger unknown: reported" \
-  printed '::error::atom-x v1.0.0: cannot read who merged pull request #1'
-clear_fixtures
+audit "merger unknown" fail atom-x
+expect message '::error::atom-x v1.0.0: cannot read who merged pull request #1'
+finish
 
 # A release made by someone else than the bot.
+setup_org
 releases atom-x 1 "v1.0.0=mallory"
 tag atom-x v1.0.0 c1
 pull 1 c1 "$from_main" main "$tagged" | pulls atom-x 1
-audit atom-x
-check "other author: exits 1" exited 1
-check "other author: reported" \
-  printed "::error::atom-x v1.0.0: released by mallory, not $bot"
-check "other author: the commit is fine" not printed 'pull request'
-clear_fixtures
+audit "other author" fail atom-x
+expect message "::error::atom-x v1.0.0: released by mallory, not $bot"
+# The commit is fine.
+expect no-message 'pull request'
+finish
 
 # The test merge commit of an open release pull request.
+setup_org
 releases atom-x 1 "v1.0.0=$bot"
 tag atom-x v1.0.0 c3
 pull 3 c3 "$from_main" main "$tagged" unmerged | pulls atom-x 1
-audit atom-x
-check "unmerged: exits 1" exited 1
-check "unmerged: reported" \
-  printed '::error::atom-x v1.0.0: pull request #3 is not merged'
-clear_fixtures
+audit "unmerged" fail atom-x
+expect message '::error::atom-x v1.0.0: pull request #3 is not merged'
+finish
 
 # Bases, labels and forks.
+setup_org
 releases atom-x 1 "v1.0.0=$bot" "v0.1.0=$bot" "v1.1.0=$bot" "v1.2.0=$bot"
 tag atom-x v1.0.0 c4
 tag atom-x v0.1.0 c5
@@ -163,60 +163,58 @@ tag atom-x v1.2.0 c7
   pull 7 c7 "$from_main" main "$tagged" \
     | jq '.head.repo.full_name = "mallory/atom-x"'
 } | pulls atom-x 1
-audit atom-x
-check "bases: exits 1" exited 1
-check "bases: release/v1 is fine" not printed 'atom-x v1.0.0'
-check "bases: release/v0 is not maintained" \
-  printed 'pull request #5 is merged into release/v0, not main or release/vN'
-check "bases: the label is required" \
-  printed 'pull request #6 is not labelled autorelease: tagged'
-check "bases: a fork is reported" \
-  printed 'pull request #7 is from mallory/atom-x'
-clear_fixtures
+audit "bases" fail atom-x
+# release/v1 is fine; release/v0 is not maintained; the label is required; a
+# fork is reported.
+expect no-message 'atom-x v1.0.0'
+expect message 'pull request #5 is merged into release/v0, not main or release/vN'
+expect message 'pull request #6 is not labelled autorelease: tagged'
+expect message 'pull request #7 is from mallory/atom-x'
+finish
 
 # Every page of releases and pull requests. The repositories are listed by
 # lib.sh, tested in repositories.sh.
+setup_org
 releases atom-x 1 "v1.0.0=$bot"
 releases atom-x 2 "v1.1.0=$bot"
 tag atom-x v1.0.0 c1
 tag atom-x v1.1.0 c8
 pull 1 c1 "$from_main" main "$tagged" | pulls atom-x 1
 pull 8 c8 "$from_main" main "$tagged" | pulls atom-x 2
-audit atom-x atom-y
-check "pages: exits 0" exited 0
-check "pages: no releases, no pull requests" not called repos/fy/atom-y/pulls
-check "pages: the release of the second page" called commits/tags/v1.1.0
-check "pages: summary" \
-  printed '2 releases of 2 repositories audited, 0 mismatches'
-clear_fixtures
+audit "pages" ok atom-x atom-y
+# atom-y has no releases, so no pull requests are listed.
+expect no-call repos/fy/atom-y/pulls
+expect call commits/tags/v1.1.0
+expect message '2 releases of 2 repositories audited, 0 mismatches'
+finish
 
 # Text from the API cannot start another workflow command.
+setup_org
 releases atom-x 1 'v1.0.0=evil%0A::warning::x'
 tag atom-x v1.0.0 c1
 pull 1 c1 "$from_main" main "$tagged" | pulls atom-x 1
-audit atom-x
-check "escaped: exits 1" exited 1
-check "escaped: percent sign" printed 'released by evil%250A::warning::x'
-clear_fixtures
+audit "escaped" fail atom-x
+expect message 'released by evil%250A::warning::x'
+finish
 
 # A tag that cannot be read.
+setup_org
 releases atom-x 1 "v1.0.0=$bot"
 fixture_status GET repos/fy/atom-x/commits/tags/v1.0.0 404
 pull 1 c1 "$from_main" main "$tagged" | pulls atom-x 1
-audit atom-x
-check "no tag: exits 1" exited 1
-check "no tag: reported" \
-  printed '::error::atom-x v1.0.0: cannot read the commit of the tag'
-clear_fixtures
-
-fixture_status GET repos/fy/atom-x/releases 500
-audit atom-x
-check "listing fails: exits non-zero" not exited 0
-check "listing fails: no summary" not printed 'audited'
-clear_fixtures
-
-run_org audit/releases.sh atom-x
-check "no bot: exits 1" exited 1
-check "no bot: says so" printed 'BOT_LOGIN is not set'
-
+audit "no tag" fail atom-x
+expect message '::error::atom-x v1.0.0: cannot read the commit of the tag'
 finish
+
+setup_org
+fixture_status GET repos/fy/atom-x/releases 500
+audit "listing fails" fail atom-x
+expect no-message 'audited'
+finish
+
+setup_org
+run "no bot" fail org/audit/releases.sh -- atom-x
+expect message 'BOT_LOGIN is not set'
+finish
+
+conclude

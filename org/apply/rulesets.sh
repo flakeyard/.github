@@ -13,8 +13,7 @@ render_ruleset() {
 # are not the repository's to replace.
 list_rulesets() {
   local rulesets=$1
-  gh api --paginate "$rulesets?includes_parents=false&per_page=100" \
-    --jq '.[]' | jq -s .
+  api_list "$rulesets?includes_parents=false&per_page=100" '.[]'
 }
 
 # ruleset_id NAME: print the id of the ruleset NAME from the listing of

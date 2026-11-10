@@ -174,23 +174,16 @@ check "bases: a fork is reported" \
   printed 'pull request #7 is from mallory/atom-x'
 clear_fixtures
 
-# Every page of repositories, releases and pull requests.
-jq -n '[{name: "atom-x", archived: false}, {name: "old", archived: true}]' \
-  | fixture GET orgs/fy/repos
-jq -n '[{name: "atom-y", archived: false}]' | fixture GET orgs/fy/repos.2
+# Every page of releases and pull requests. The repositories are listed by
+# lib.sh, tested in repositories.sh.
 releases atom-x 1 "v1.0.0=$bot"
 releases atom-x 2 "v1.1.0=$bot"
 tag atom-x v1.0.0 c1
 tag atom-x v1.1.0 c8
 pull 1 c1 "$from_main" main "$tagged" | pulls atom-x 1
 pull 8 c8 "$from_main" main "$tagged" | pulls atom-x 2
-audit
+audit atom-x atom-y
 check "pages: exits 0" exited 0
-check "pages: paginates repositories" \
-  called "--paginate orgs/fy/repos\\?per_page=100"
-check "pages: skips archived repositories" not called repos/fy/old/
-check "pages: audits the second page of repositories" \
-  called repos/fy/atom-y/releases
 check "pages: no releases, no pull requests" not called repos/fy/atom-y/pulls
 check "pages: the release of the second page" called commits/tags/v1.1.0
 check "pages: summary" \

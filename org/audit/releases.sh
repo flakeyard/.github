@@ -13,11 +13,14 @@
 # enough. $BOT_LOGIN is the login of the release bot, such as
 # "flakeyard-bot[bot]". Mismatches are printed as workflow commands, so that
 # GitHub Actions shows them as errors.
+# shellcheck source-path=SCRIPTDIR/..
 set -euo pipefail
 
-org=${ORG:-flakeyard}
-bot_login=${BOT_LOGIN:-}
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=lib.sh
+source "$here/../lib.sh"
+
+bot_login=${BOT_LOGIN:-}
 readonly reviewers_file=$here/../repository/environments/release-reviewers.json
 
 readonly version_tag='^v[0-9]+\.[0-9]+\.[0-9]+$'
@@ -71,11 +74,6 @@ readonly jq_release_number="$jq_release_definitions"'
 mismatches=0
 releases_audited=0
 
-die() {
-  printf '%s\n' "$*" >&2
-  exit 1
-}
-
 # escape_data TEXT: print TEXT escaped as the data of a workflow command, so
 # that it cannot end the command or start another one.
 escape_data() {
@@ -93,12 +91,6 @@ report() {
   mismatches=$((mismatches + 1))
 }
 
-# repositories: print the name of every non-archived repository of $org.
-repositories() {
-  gh api --paginate "orgs/$org/repos?per_page=100" \
-    --jq '.[] | select(.archived | not) | .name'
-}
-
 # releases REPO: print "tag<TAB>author" of every release of REPO.
 releases() {
   local repo=$1
@@ -110,8 +102,7 @@ releases() {
 # FILE. A file, since the list can exceed the size of a command argument.
 pull_requests() {
   local repo=$1 file=$2
-  gh api --paginate "repos/$org/$repo/pulls?state=all&per_page=100" \
-    | jq -s 'add // []' >"$file"
+  api_list "repos/$org/$repo/pulls?state=all&per_page=100" '.[]' >"$file"
 }
 
 # tag_commit REPO TAG: print the commit that the tag TAG of REPO points to.
@@ -203,22 +194,13 @@ audit_repository() {
   done <<<"$list"
 }
 
-for tool in gh jq; do
-  command -v "$tool" >/dev/null || die "missing tool: $tool"
-done
 [[ -n $bot_login ]] || die "BOT_LOGIN is not set"
 [[ -r $reviewers_file ]] || die "cannot read $reviewers_file"
 
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 
-repos=("$@")
-if ((${#repos[@]} == 0)); then
-  # Assigned separately so that a failing gh stops the script.
-  all=$(repositories)
-  [[ -n $all ]] || die "no repositories in $org"
-  mapfile -t repos <<<"$all"
-fi
+select_repositories "$@"
 
 for repo in "${repos[@]}"; do
   audit_repository "$repo" "$work"

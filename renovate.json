@@ -1,4 +1,4 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>flakeyard/renovate-config#v0.2.0"]
+  "extends": ["github>flakeyard/renovate-config#v0.2.1"]
 }

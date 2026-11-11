@@ -6,14 +6,22 @@ set -uo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib.sh"
 
 readonly rulesets=repos/fy/atom-x/rulesets
+# The request that lists the rulesets.
+readonly listing="$rulesets?includes_parents=false&per_page=100"
 
-# listed RULESET...: answer the listing of rulesets with "NAME=ID" pairs.
-listed() {
+# page RULESET...: print a page of the listing of rulesets with "NAME=ID"
+# pairs.
+page() {
   local pair
   for pair; do
     jq -n --arg name "${pair%=*}" --argjson id "${pair#*=}" \
       '{id: $id, name: $name, source_type: "Repository"}'
-  done | jq -s . | fixture GET "$rulesets"
+  done | jq -s .
+}
+
+# listed RULESET...: answer the listing of rulesets with "NAME=ID" pairs.
+listed() {
+  fixture "$listing" "$(page "$@")"
 }
 
 # release_tags: the body of the ruleset release-tags with the bot app 42.
@@ -31,28 +39,26 @@ apply_rulesets() {
 setup_org
 listed
 apply_rulesets "none" ok
-expect call "--paginate $rulesets\\?includes_parents=false\\&per_page=100"
-expect_sent "api --silent -X POST $rulesets --input -" \
-  "$(jq -c . "$root/org/repository/rulesets/main.json")"
-expect_sent "api --silent -X POST $rulesets --input -" "$(release_tags)"
-expect no-call "-X PUT $rulesets/"
+expect call "GET $listing"
+expect call "POST $rulesets --input=$(jq -c . "$root/org/repository/rulesets/main.json")"
+expect call "POST $rulesets --input=$(release_tags)"
+expect no-call "PUT $rulesets/"
 expect no-message 'warning:'
 finish
 
 setup_org
 listed main=1 release-branches=2 release-tags=3 version-branches=4
 apply_rulesets "all" ok
-expect call "-X PUT $rulesets/1 --input -"
-expect_sent "api --silent -X PUT $rulesets/3 --input -" "$(release_tags)"
-expect no-call "-X POST $rulesets"
+expect call "PUT $rulesets/1 --input="
+expect call "PUT $rulesets/3 --input=$(release_tags)"
+expect no-call "POST $rulesets"
 finish
 
 setup_org
 listed main=1
-jq -n '[{id: 3, name: "release-tags", source_type: "Repository"}]' \
-  | fixture GET "$rulesets.2"
+next_page "$listing" 2 "$(page release-tags=3)"
 apply_rulesets "two pages: replaces release-tags of page 2" ok
-expect call "-X PUT $rulesets/3 --input -"
+expect call "PUT $rulesets/3 --input="
 finish
 
 setup_org
@@ -68,7 +74,7 @@ setup_org
 listed main=1 main=2
 apply_rulesets "duplicate" fail
 expect message 'several rulesets are named main'
-expect no-call "-X PUT $rulesets/"
+expect no-call "PUT $rulesets/"
 expect no-message 'atom-x: done'
 finish
 

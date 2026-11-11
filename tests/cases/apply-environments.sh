@@ -12,12 +12,11 @@ readonly policies=$environments/release/deployment-branch-policies
 readonly image_environments=repos/fy/image-w/environments
 readonly publish_policies=$image_environments/publish/deployment-branch-policies
 
-# put NAME [REPO]: the call that creates the environment NAME of REPO, atom-x
-# by default.
+# put NAME [REPO]: the request that creates the environment NAME of REPO,
+# atom-x by default.
 put() {
   local name=$1 repo=${2:-atom-x}
-  printf 'api --silent -X PUT repos/fy/%s/environments/%s --input -' \
-    "$repo" "$name"
+  printf 'PUT repos/fy/%s/environments/%s' "$repo" "$name"
 }
 
 # environment REVIEWERS: the body that creates a deploy environment.
@@ -32,15 +31,27 @@ environment() {
   }'
 }
 
+# listing REPO: the request that lists the environments of REPO.
+listing() {
+  local repo=$1
+  printf 'repos/fy/%s/environments?per_page=100' "$repo"
+}
+
+# page NAME...: print a page of the listing of environments with the
+# environments NAME.
+page() {
+  local name
+  for name; do
+    jq -n --arg name "$name" '{id: 1, name: $name}'
+  done | jq -s '{total_count: length, environments: .}'
+}
+
 # environments REPO NAME...: answer the listing of environments of REPO with
 # the environments NAME.
 environments() {
-  local repo=$1 name
+  local repo=$1
   shift
-  for name; do
-    jq -n --arg name "$name" '{id: 1, name: $name}'
-  done | jq -s '{total_count: length, environments: .}' \
-    | fixture GET "repos/fy/$repo/environments"
+  fixture "$(listing "$repo")" "$(page "$@")"
 }
 
 # apply_to NAME EXPECTED REPO [NAME=VALUE...]: run apply.sh on REPO with the
@@ -52,24 +63,22 @@ apply_to() {
 }
 
 setup_org
-fixture GET "$policies" <<'EOF_JSON'
-{"branch_policies": [
+fixture "$policies?per_page=100" '{"branch_policies": [
   {"id": 1, "name": "main", "type": "branch"},
   {"id": 2, "name": "*", "type": "branch"},
   {"id": 3, "name": "release/v*", "type": "tag"}
-]}
-EOF_JSON
+]}'
 apply_to "atom-x" ok atom-x
 expect message 'atom-x: done'
 # release requires the owner, cache no reviewer.
-expect_sent "$(put release)" "$(environment "[$owner]")"
-expect_sent "$(put cache)" "$(environment '[]')"
+expect call "$(put release) --input=$(environment "[$owner]")"
+expect call "$(put cache) --input=$(environment '[]')"
 # The policy main is kept, the policy * and the tag policy release/v* are
 # deleted, and the branch policy release/v* is added.
 expect no-call "$policies/1"
-expect call "-X DELETE $policies/2"
-expect call "-X DELETE $policies/3"
-expect call "-X POST $policies -f name=release/v\\* -f type=branch"
+expect call "DELETE $policies/2"
+expect call "DELETE $policies/3"
+expect call "POST $policies name=release/v* type=branch"
 finish
 
 setup_org
@@ -85,13 +94,14 @@ apply_to "image-w gets release and publish" ok image-w
 expect call repos/fy/image-w/environments/release
 expect no-call repos/fy/image-w/environments/cache
 # publish requires the owner of release, and allows main and release/v*.
-expect_sent "$(put publish image-w)" "$(environment "[$owner]")"
-expect call "-X POST $publish_policies -f name=main -f type=branch"
-expect call "-X POST $publish_policies -f name=release/v\\* -f type=branch"
+expect call "$(put publish image-w) --input=$(environment "[$owner]")"
+expect call "POST $publish_policies name=main type=branch"
+expect call "POST $publish_policies name=release/v* type=branch"
 finish
 
 # Publication uses GITHUB_TOKEN, so the bot key stays in "release" only.
 setup_org
+# shellcheck disable=SC2154 # work comes from setup of the harness.
 printf 'key\n' >"$work/key.pem"
 apply_to "image-w with the key" ok image-w BOT_PRIVATE_KEY_FILE="$work/key.pem"
 expect call 'secret set APP_PRIVATE_KEY --repo fy/image-w --env release'
@@ -115,19 +125,21 @@ environments image-w release publish cache
 apply_to "leftover cache" ok image-w
 expect message 'warning: image-w: environments not in repository/environments/:'
 expect message cache
-expect no-call "-X DELETE repos/fy/image-w"
+expect no-call "DELETE repos/fy/image-w"
 # release and publish are managed.
 expect no-message release
 expect no-message publish
 expect message 'image-w: done'
 finish
 
+# The environment is on page 2, which only --paginate reads.
 setup_org
-environments decisions release
+environments decisions
+next_page "$(listing decisions)" 2 "$(page release)"
 apply_to "unreleased" ok decisions
 expect message release
-expect call "--paginate repos/fy/decisions/environments\\?per_page=100"
-expect no-call "-X PUT repos/fy/decisions/environments/"
+expect call "GET $(listing decisions)"
+expect no-call "PUT repos/fy/decisions/environments/"
 finish
 
 conclude

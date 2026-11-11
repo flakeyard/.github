@@ -8,11 +8,10 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../lib.sh"
 readonly organization=$root/org/organization/actions/workflow.json
 readonly http_conflict=409
 
-# put REPO: the call that sets the workflow permissions of REPO.
+# put REPO: the request that sets the workflow permissions of REPO.
 put() {
   local repo=$1
-  printf 'api --silent -X PUT repos/fy/%s/actions/permissions/workflow --input -' \
-    "$repo"
+  printf 'PUT repos/fy/%s/actions/permissions/workflow' "$repo"
 }
 
 # permissions CAN_APPROVE: the body that sets the workflow permissions.
@@ -38,20 +37,20 @@ finish
 for repo in atom-x action-y workflow-z image-w template-v renovate-config; do
   setup_org
   run "$repo creates pull requests" ok org/apply.sh BOT_APP_ID=42 -- "$repo"
-  expect_sent "$(put "$repo")" "$(permissions true)"
+  expect call "$(put "$repo") --input=$(permissions true)"
   finish
 done
 
 for repo in .github decisions probe-renovate; do
   setup_org
   run "$repo creates no pull requests" ok org/apply.sh BOT_APP_ID=42 -- "$repo"
-  expect_sent "$(put "$repo")" "$(permissions false)"
+  expect call "$(put "$repo") --input=$(permissions false)"
   finish
 done
 
 # The organization forbids the flag: GitHub answers 409 Conflict.
 setup_org
-fixture_status PUT repos/fy/atom-x/actions/permissions/workflow "$http_conflict"
+apply FAIL_ON="$(put atom-x) $http_conflict"
 run "forbidden" fail org/apply.sh BOT_APP_ID=42 -- atom-x
 expect no-message 'atom-x: done'
 finish

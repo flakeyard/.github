@@ -1,6 +1,6 @@
 # shellcheck shell=bash
-# Helpers of apply.sh, settings.sh and audit/releases.sh, which source this
-# file first. Sourcing it checks that gh and jq are installed.
+# Helpers of apply.sh, settings.sh and the scripts of audit/, which source
+# this file first. Sourcing it checks that gh and jq are installed.
 
 org=${ORG:-flakeyard}
 

@@ -15,10 +15,10 @@ applied to every repository by a script.
 | `repository/environments/`   | `apply.sh`    | environments and reviewers    |
 | `repository/rulesets/`       | `apply.sh`    | branch and tag protection     |
 
-Only `settings.sh`, `apply.sh` and `audit/releases.sh` are run, the last by the
-workflow `audit` too. All three first source `lib.sh`: it checks that gh and jq
-are installed, reads a list from every page of an API path, and lists the
-non-archived repositories that `apply.sh` and the audit work on when no
+Only `settings.sh`, `apply.sh` and `audit/*.sh` are run, `audit/releases.sh` by
+the workflow `audit` too. All of them first source `lib.sh`: it checks that gh
+and jq are installed, reads a list from every page of an API path, and lists the
+non-archived repositories that `apply.sh` and the audits work on when no
 repository is given. `apply.sh` sources one file per concern from `apply/`:
 `settings.sh`, `actions.sh`, `labels.sh`, `topics.sh`, `rulesets.sh`,
 `environments.sh` and `security.sh` apply one part each, and `http.sh`,
@@ -190,6 +190,33 @@ or releases that were deleted. To run it locally or for some repositories:
 ```sh
 BOT_LOGIN='flakeyard-bot[bot]' ./audit/releases.sh atom-shell
 ```
+
+## CI times
+
+`audit/ci-times.sh` reports how long CI takes, so that a change to CI can be
+measured before and after. It reads the runs of `test.yaml`, or
+`check-self.yaml` in `workflow-check`, created since a day, 14 days ago by
+default, and prints Markdown tables, or JSON with `--json`. It changes nothing
+and no workflow runs it:
+
+```sh
+./audit/ci-times.sh --since 2026-11-01 > ci-times.md
+./audit/ci-times.sh --json atom-shell
+```
+
+- **Runs**, by event: the count, and the median and 90th percentile of the wall
+  time, from the start of the latest attempt to its last update, and of the jobs
+  time, from the start of its first job to the end of its last, without the wait
+  for the first runner.
+- **Jobs**: the count, median and 90th percentile of each job. Matrix values
+  other than a system, such as `x86_64-linux`, are left out of the name.
+- **Pull request branches**: the runs and the distinct head commits per branch,
+  mean and maximum. Each push to the branch, such as an update with `main`, is
+  one more commit to test.
+
+Only runs that succeeded or failed and ran a job are timed; cancelled runs, and
+runs that failed to start, are counted. A percentile is the nearest rank, so it
+is one of the measured times.
 
 ## Tests
 

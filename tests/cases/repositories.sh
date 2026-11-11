@@ -9,13 +9,15 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../lib.sh"
 readonly listing='orgs/fy/repos?per_page=100'
 
 # run_without_repositories NAME EXPECTED SCRIPT: run org/SCRIPT without
-# arguments, with what each script requires.
+# arguments, with what each script requires: the time for the window of
+# ci-times.sh, and the bot for the others.
 run_without_repositories() {
   local name=$1 expected=$2 script=$3
+  fixed_time 2026-11-12T12:00:00Z
   run "$script: $name" "$expected" "org/$script" BOT_APP_ID=42 BOT_LOGIN='bot[bot]'
 }
 
-for script in apply.sh audit/releases.sh; do
+for script in apply.sh audit/releases.sh audit/ci-times.sh; do
   setup_org
   fixture "$listing" \
     '[{"name": "atom-x", "archived": false}, {"name": "old", "archived": true}]'

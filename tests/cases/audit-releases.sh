@@ -21,12 +21,12 @@ audit() {
   run "$name" "$expected" org/audit/releases.sh BOT_LOGIN="$bot" -- "$@"
 }
 
-# fixture_page PATH PAGE: store stdin as the answer of the stub to the page
-# PAGE (1 or more) of GET PATH.
+# fixture_page PATH PAGE: answer the page PAGE (1 or more) of the request PATH
+# with stdin.
 fixture_page() {
-  local path=$1 page=$2
-  ((page == 1)) || path=$path.$page
-  fixture GET "$path"
+  local path=$1 page=$2 body
+  body=$(cat)
+  if ((page == 1)); then fixture "$path" "$body"; else next_page "$path" "$page" "$body"; fi
 }
 
 # releases REPO PAGE TAG=AUTHOR...: answer the page PAGE of the releases of
@@ -37,14 +37,13 @@ releases() {
   for pair; do
     jq -n --arg tag "${pair%%=*}" --arg login "${pair#*=}" \
       '{tag_name: $tag, author: {login: $login}}'
-  done | jq -s . | fixture_page "repos/fy/$repo/releases" "$page"
+  done | jq -s . | fixture_page "repos/fy/$repo/releases?per_page=100" "$page"
 }
 
 # tag REPO TAG COMMIT: make the tag TAG of REPO point to COMMIT.
 tag() {
   local repo=$1 tag=$2 commit=$3
-  jq -n --arg sha "$commit" '{sha: $sha}' \
-    | fixture GET "repos/fy/$repo/commits/tags/$tag"
+  fixture "repos/fy/$repo/commits/tags/$tag" "$(jq -n --arg sha "$commit" '{sha: $sha}')"
 }
 
 # pull NUMBER COMMIT HEAD BASE LABEL [MERGED]: print a pull request merged
@@ -70,11 +69,11 @@ pulls() {
   local repo=$1 page=$2 list number
   list=$(jq -s .)
   jq 'map(del(.merged_by))' <<<"$list" \
-    | fixture_page "repos/fy/$repo/pulls" "$page"
+    | fixture_page "repos/fy/$repo/pulls?state=all&per_page=100" "$page"
   for number in $(jq -r '.[].number' <<<"$list"); do
-    jq --argjson n "$number" --arg owner "$owner" \
-      '.[] | select(.number == $n) | .merged_by //= {login: $owner}' <<<"$list" \
-      | fixture GET "repos/fy/$repo/pulls/$number"
+    fixture "repos/fy/$repo/pulls/$number" "$(jq --argjson n "$number" \
+      --arg owner "$owner" '.[] | select(.number == $n)
+        | .merged_by //= {login: $owner}' <<<"$list")"
   done
 }
 
@@ -85,10 +84,10 @@ tag atom-x v1.0.0 c1
 pull 1 c1 "$from_main" main "$tagged" | pulls atom-x 1
 audit "release" ok atom-x
 expect no-message '::error::'
-expect call "--paginate repos/fy/atom-x/releases\\?per_page=100"
+expect call "GET repos/fy/atom-x/releases?per_page=100"
 # Every pull request is listed; the tag, not a branch, is read, and other tags
 # are skipped.
-expect call "--paginate repos/fy/atom-x/pulls\\?state=all\\&per_page=100"
+expect call "GET repos/fy/atom-x/pulls?state=all&per_page=100"
 expect call "repos/fy/atom-x/commits/tags/v1.0.0"
 expect no-call commits/tags/nightly
 # Who merged it is read.
@@ -124,7 +123,7 @@ setup_org
 releases atom-x 1 "v1.0.0=$bot"
 tag atom-x v1.0.0 c1
 pull 1 c1 "$from_main" main "$tagged" | pulls atom-x 1
-fixture_status GET repos/fy/atom-x/pulls/1 502
+apply FAIL_ON="GET repos/fy/atom-x/pulls/1 502"
 audit "merger unknown" fail atom-x
 expect message '::error::atom-x v1.0.0: cannot read who merged pull request #1'
 finish
@@ -200,14 +199,14 @@ finish
 # A tag that cannot be read.
 setup_org
 releases atom-x 1 "v1.0.0=$bot"
-fixture_status GET repos/fy/atom-x/commits/tags/v1.0.0 404
+apply FAIL_ON="GET repos/fy/atom-x/commits/tags/v1.0.0 404"
 pull 1 c1 "$from_main" main "$tagged" | pulls atom-x 1
 audit "no tag" fail atom-x
 expect message '::error::atom-x v1.0.0: cannot read the commit of the tag'
 finish
 
 setup_org
-fixture_status GET repos/fy/atom-x/releases 500
+apply FAIL_ON="GET repos/fy/atom-x/releases?per_page=100 500"
 audit "listing fails" fail atom-x
 expect no-message 'audited'
 finish

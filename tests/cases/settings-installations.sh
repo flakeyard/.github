@@ -5,14 +5,15 @@ set -uo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/../lib.sh"
 
 readonly listed=$root/org/organization/installations.json
-readonly installations=orgs/fy/installations
+# The request that lists the installations.
+readonly listing='orgs/fy/installations?per_page=100'
 
 # installed JQ: answer the listing of installations with the Apps of
 # installations.json changed by JQ, and the fields the check ignores.
 installed() {
   local change=$1
-  jq "{installations: (map(. + {id: 1, app_id: 2}) | $change)}" "$listed" \
-    | fixture GET "$installations"
+  fixture "$listing" \
+    "$(jq "{installations: (map(. + {id: 1, app_id: 2}) | $change)}" "$listed")"
 }
 
 # run_settings NAME EXPECTED: run settings.sh.
@@ -24,14 +25,13 @@ run_settings() {
 setup_org
 installed .
 run_settings "as listed" ok
-expect call "--paginate $installations\\?per_page=100"
+expect call "GET $listing"
 expect message 'installations of GitHub Apps checked'
 finish
 
 setup_org
 installed '.[:1]'
-jq '{installations: .[1:]}' "$listed" \
-  | fixture GET "$installations.2"
+next_page "$listing" 2 "$(jq '{installations: .[1:]}' "$listed")"
 run_settings "two pages" ok
 finish
 
@@ -43,7 +43,7 @@ installed 'map(select(.app_slug == "flakeyard-bot")
   + [{app_slug: "stranger", repository_selection: "all", permissions: {}}]'
 run_settings "drift" fail
 # The settings are applied before the check.
-expect call '-X PATCH orgs/fy --input settings.json'
+expect call "PATCH orgs/fy --input=$(jq -c . "$root/org/organization/settings.json")"
 expect call 'orgs/fy/actions/permissions/self-hosted-runners'
 expect message 'renovate: not installed'
 expect message 'flakeyard-bot: installed for selected repositories, not all'
@@ -78,7 +78,7 @@ run_settings "not suspended" ok
 finish
 
 setup_org
-fixture_status GET "$installations" 500
+apply FAIL_ON="GET $listing 500"
 run_settings "listing fails" fail
 expect no-message 'checked'
 finish

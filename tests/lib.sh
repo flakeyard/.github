@@ -26,3 +26,11 @@ setup_org() {
   setup
   apply ORG=fy LOG_GETS=1 MISSING_IS_EMPTY=1
 }
+
+# fixture_page PATH PAGE: answer the page PAGE (1 or more) of the request PATH
+# with stdin.
+fixture_page() {
+  local path=$1 page=$2 body
+  body=$(cat)
+  if ((page == 1)); then fixture "$path" "$body"; else next_page "$path" "$page" "$body"; fi
+}

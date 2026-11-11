@@ -5,6 +5,9 @@
 # Usage: apply.sh [repo...]
 #   Without arguments, applies to every non-archived repository of $ORG.
 #
+# A repository that fails does not stop the others: the script lists every
+# repository that it did not apply to at the end, and then fails.
+#
 # Requires gh with a token that has the repo scope, and jq. The GitHub App
 # that may create and move release tags is read from $BOT_APP_ID or from the
 # organization variable BOT_APP_ID. When $BOT_PRIVATE_KEY_FILE names its private
@@ -55,9 +58,9 @@ source "$here/apply/environments.sh"
 # shellcheck source=apply/security.sh
 source "$here/apply/security.sh"
 
-select_repositories "$@"
-
-for repo in "${repos[@]}"; do
+# apply_repository REPO: apply every step to REPO.
+apply_repository() {
+  local repo=$1
   apply_settings "$repo"
   apply_actions "$repo"
   apply_labels "$repo"
@@ -66,4 +69,31 @@ for repo in "${repos[@]}"; do
   apply_environments "$repo"
   apply_security "$repo"
   printf '%s: done\n' "$repo"
+}
+
+# apply_or_record REPO: apply every step to REPO, and add REPO to failed when
+# one fails. The steps run in a subshell, since one may exit through die, and
+# with errexit, which a function called as a condition would lose; so this one
+# must not be called as one.
+apply_or_record() {
+  local repo=$1 status
+  set +e
+  (
+    set -e
+    apply_repository "$repo"
+  )
+  status=$?
+  set -e
+  ((status == 0)) && return
+  printf '%s: failed\n' "$repo" >&2
+  failed+=("$repo")
+}
+
+select_repositories "$@"
+
+failed=()
+for repo in "${repos[@]}"; do
+  apply_or_record "$repo"
 done
+((${#failed[@]} == 0)) \
+  || die "not applied, run apply.sh again for: ${failed[*]}"

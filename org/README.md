@@ -36,7 +36,9 @@ other than `main` and `release/v*`. Rulesets that `repository/rulesets/` does
 not define and environments that `repository/environments/` does not give to the
 repository are kept, but `apply.sh` prints a warning that names them; delete
 them by hand. A ruleset only adds rules, and deleting an environment deletes its
-secrets. Rulesets inherited from the organization are not touched.
+secrets. Rulesets inherited from the organization are not touched. When a
+repository fails, `apply.sh` goes on with the others, then names every
+repository that it did not apply to and fails; run it again for them.
 
 ```sh
 gh auth refresh -h github.com -s admin:org  # once, for settings.sh
@@ -144,6 +146,9 @@ released repository, for the yearly rotation and after a leak alike:
    ```sh
    BOT_PRIVATE_KEY_FILE=~/Downloads/flakeyard-bot.pem ./apply.sh
    ```
+
+   If it names repositories that it did not apply to, run it again with the same
+   file for those, until none is left.
 
 3. Delete the file.
 4. On the App's page, delete every older key. Only the new one is left.

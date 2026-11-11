@@ -175,12 +175,15 @@ and on dispatch. For every release `vX.Y.Z` of every non-archived repository, it
 checks that `flakeyard-bot` made it, and that its tag points to the merge commit
 of a release pull request ([FY-0007][fy-0007], [FY-0030][fy-0030]): one from the
 branch `release-please--branches--<base>` of the same repository, merged into
-`<base>`, which is `main` or `release/vN` with `N >= 1`, labelled
+`<base>`, which is `main` or `release/vN` with `N >= 1`, titled
+`chore(<base>): release X.Y.Z` for the version of the release, labelled
 `autorelease: tagged`, and merged by a reviewer of the environment `release`
-(`repository/environments/release-reviewers.json`). A key of the App can open,
-label and merge such a pull request, but it merges as the App, so the last check
-tells it from a release the owner merged. It reports every mismatch as an error
-and then fails. A failed run is the alert; follow [Leaked key](#leaked-key).
+(`repository/environments/release-reviewers.json`). No two releases may share a
+commit, so a forged release on the commit of a genuine one is reported too. A
+key of the App can open, label and merge such a pull request, but it merges as
+the App, so the last check tells it from a release the owner merged. It reports
+every mismatch as an error and then fails. A failed run is the alert; follow
+[Leaked key](#leaked-key).
 
 The job reads with `GITHUB_TOKEN`, since every repository is public. It checks
 the organization, not a commit, so it is not a check workflow: it posts no

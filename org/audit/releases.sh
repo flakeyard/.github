@@ -2,9 +2,10 @@
 # Audit the releases of the organization. Every release vX.Y.Z must be made by
 # the release bot, and its tag must point to the merge commit of a release pull
 # request: one from the branch release-please--branches--BASE, merged into BASE,
-# which is main or release/vN, labelled "autorelease: tagged" and merged by a
-# reviewer of the environment release (FY-0007, FY-0030, FY-0033). A release
-# that is not is reported, and the script then fails.
+# which is main or release/vN, titled "chore(BASE): release X.Y.Z" for its own
+# version, labelled "autorelease: tagged" and merged by a reviewer of the
+# environment release (FY-0007, FY-0030, FY-0033). No two releases may share a
+# commit. A release that is not is reported, and the script then fails.
 #
 # Usage: releases.sh [repo...]
 #   Without arguments, audits every non-archived repository of $ORG.
@@ -25,13 +26,16 @@ readonly reviewers_file=$here/../repository/environments/release-reviewers.json
 
 readonly version_tag='^v[0-9]+\.[0-9]+\.[0-9]+$'
 
-# The definitions of a release pull request, shared by the jq programs below.
+# The definitions of a release pull request of the release $tag, shared by the
+# jq programs below.
 # shellcheck disable=SC2016 # jq variables, not shell ones
 readonly jq_release_definitions='
   def release_branch: "release-please--branches--" + .base.ref;
   def maintained_base: .base.ref | test("^(main|release/v[1-9][0-9]*)$");
   def tagged: any(.labels[]; .name == "autorelease: tagged");
   def head_repository: .head.repo.full_name // "a deleted repository";
+  # The title that release-please gives the release pull request of $tag.
+  def release_title: "chore(\(.base.ref)): release \($tag | ltrimstr("v"))";
 
   def problems:
     "pull request #\(.number)" as $pr
@@ -42,7 +46,9 @@ readonly jq_release_definitions='
         | "\($pr) is from \(head_repository)"),
       (select(maintained_base | not)
         | "\($pr) is merged into \(.base.ref), not main or release/vN"),
-      (select(tagged | not) | "\($pr) is not labelled autorelease: tagged");
+      (select(tagged | not) | "\($pr) is not labelled autorelease: tagged"),
+      (select(.title != release_title)
+        | "\($pr) is titled \(.title), not \(release_title)");
 
   def has_merge_commit($commit): .merge_commit_sha == $commit;
   # A release pull request is one without problems.
@@ -73,6 +79,8 @@ readonly jq_release_number="$jq_release_definitions"'
 
 mismatches=0
 releases_audited=0
+# The release of each commit audited in the current repository.
+declare -A release_of_commit=()
 
 # escape_data TEXT: print TEXT escaped as the data of a workflow command, so
 # that it cannot end the command or start another one.
@@ -111,18 +119,18 @@ tag_commit() {
   gh api "repos/$org/$repo/commits/tags/$tag" --jq .sha
 }
 
-# release_problems COMMIT FILE: print why COMMIT is not the merge commit of a
-# release pull request of the list FILE.
+# release_problems TAG COMMIT FILE: print why COMMIT is not the merge commit of
+# a release pull request of TAG in the list FILE.
 release_problems() {
-  local commit=$1 file=$2
-  jq -r --arg commit "$commit" "$jq_release_problems" "$file"
+  local tag=$1 commit=$2 file=$3
+  jq -r --arg tag "$tag" --arg commit "$commit" "$jq_release_problems" "$file"
 }
 
-# release_number COMMIT FILE: print the number of the release pull request of
-# the list FILE whose merge commit is COMMIT.
+# release_number TAG COMMIT FILE: print the number of the release pull request
+# of TAG in the list FILE whose merge commit is COMMIT.
 release_number() {
-  local commit=$1 file=$2
-  jq -r --arg commit "$commit" "$jq_release_number" "$file"
+  local tag=$1 commit=$2 file=$3
+  jq -r --arg tag "$tag" --arg commit "$commit" "$jq_release_number" "$file"
 }
 
 # merger REPO NUMBER: print the login of whoever merged the pull request NUMBER
@@ -143,7 +151,7 @@ is_release_reviewer() {
 # unless a reviewer of the environment release merged it.
 audit_merger() {
   local repo=$1 tag=$2 commit=$3 file=$4 number login
-  number=$(release_number "$commit" "$file")
+  number=$(release_number "$tag" "$commit" "$file")
   if ! login=$(merger "$repo" "$number"); then
     report "$repo" "$tag" "cannot read who merged pull request #$number"
     return
@@ -161,18 +169,23 @@ report_each() {
   done <<<"$problems"
 }
 
-# audit_release REPO TAG AUTHOR FILE: check the release TAG of REPO made by
-# AUTHOR against the pull requests of FILE.
-audit_release() {
-  local repo=$1 tag=$2 author=$3 file=$4 commit problems
-  releases_audited=$((releases_audited + 1))
-  [[ $author == "$bot_login" ]] \
-    || report "$repo" "$tag" "released by $author, not $bot_login"
-  if ! commit=$(tag_commit "$repo" "$tag"); then
-    report "$repo" "$tag" "cannot read the commit of the tag"
-    return
+# audit_shared_commit REPO TAG COMMIT: report the release TAG of REPO when an
+# earlier release of REPO has its commit COMMIT, or else remember it.
+audit_shared_commit() {
+  local repo=$1 tag=$2 commit=$3 other
+  other=${release_of_commit[$commit]-}
+  if [[ -n $other ]]; then
+    report "$repo" "$tag" "commit $commit is the commit of $other too"
+  else
+    release_of_commit[$commit]=$tag
   fi
-  problems=$(release_problems "$commit" "$file")
+}
+
+# audit_commit REPO TAG COMMIT FILE: check that COMMIT, of the release TAG of
+# REPO, is the merge commit of a release pull request of TAG in FILE.
+audit_commit() {
+  local repo=$1 tag=$2 commit=$3 file=$4 problems
+  problems=$(release_problems "$tag" "$commit" "$file")
   if [[ -n $problems ]]; then
     report_each "$repo" "$tag" "$problems"
   else
@@ -180,11 +193,27 @@ audit_release() {
   fi
 }
 
+# audit_release REPO TAG AUTHOR FILE: check the release TAG of REPO made by
+# AUTHOR against the pull requests of FILE.
+audit_release() {
+  local repo=$1 tag=$2 author=$3 file=$4 commit
+  releases_audited=$((releases_audited + 1))
+  [[ $author == "$bot_login" ]] \
+    || report "$repo" "$tag" "released by $author, not $bot_login"
+  if ! commit=$(tag_commit "$repo" "$tag"); then
+    report "$repo" "$tag" "cannot read the commit of the tag"
+    return
+  fi
+  audit_shared_commit "$repo" "$tag" "$commit"
+  audit_commit "$repo" "$tag" "$commit" "$file"
+}
+
 # audit_repository REPO DIR: check every release vX.Y.Z of REPO, with DIR for
 # temporary files.
 audit_repository() {
   local repo=$1 dir=$2 list tag author file
   file=$dir/pulls.json
+  release_of_commit=()
   list=$(releases "$repo")
   [[ -n $list ]] || return 0
   pull_requests "$repo" "$file"

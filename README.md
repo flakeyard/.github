@@ -10,6 +10,15 @@ Organization-wide defaults for [flakeyard](https://github.com/flakeyard):
 - The organization profile, `profile/README.md`.
 - Organization and repository settings as code, see [org/](org/README.md).
 
+## Development
+
+Open the repository in its dev container,
+[`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json), with
+"Reopen in Container" in VS Code or `devcontainer up --workspace-folder .`. The
+checks of [CI](#ci) and [Bootstrap](#bootstrap), such as `tests/run.sh`, run in
+it as in CI; tools that the image does not have come from nixpkgs, such as
+`nix run nixpkgs#prettier`. Nix on the host works as well.
+
 ## CI
 
 [`test.yaml`](.github/workflows/test.yaml) runs the tests of `org/`

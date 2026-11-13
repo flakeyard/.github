@@ -57,3 +57,5 @@ jobs:
       flake: .
       expect-checks: '["workflows"]'
       renovate-presets: '["flakeyard/renovate-config"]'
+      # The default configurations of the atoms apply (FY-0037).
+      forbid-tool-configs: true

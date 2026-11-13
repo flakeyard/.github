@@ -1,6 +1,6 @@
 # CI of this repository: the tests of the scripts of org/, then
 # workflow-check, which checks pull request titles, renovate.json and its preset
-# tag. The repository has no flake, so check builds no flake checks.
+# tag, and builds the checks of the root flake, which only imports atoms.
 name: test
 
 on:
@@ -8,6 +8,9 @@ on:
     types: [opened, synchronize, reopened, edited] # edited: the title check
   push:
     branches: [main, "release/v*"]
+  # Weekly, for the end of life of the nixpkgs branch in flake.lock (FY-0036).
+  schedule:
+    - cron: "31 4 * * 1"
   workflow_dispatch: # manual checks; dispatched runs post a commit status
 
 permissions: {}
@@ -51,5 +54,6 @@ jobs:
       statuses: write # commit statuses of dispatched runs
     with:
       needs: ${{ toJSON(needs) }}
-      flake: ""
+      flake: .
+      expect-checks: '["workflows"]'
       renovate-presets: '["flakeyard/renovate-config"]'

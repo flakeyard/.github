@@ -23,9 +23,13 @@ it as in CI; tools that the image does not have come from nixpkgs, such as
 
 [`test.yaml`](.github/workflows/test.yaml) runs the tests of `org/`
 (`tests/run.sh`) and then calls [workflow-check][workflow-check], which checks
-pull request titles, `renovate.json` and the immutable release behind its preset
-tag ([workflow-check ADR-0001][workflow-check-adr-0001]). The repository has no
-flake, so no flake checks are built.
+`flake.lock`, pull request titles, `renovate.json` and the immutable release
+behind its preset tag ([workflow-check ADR-0001][workflow-check-adr-0001]), and
+builds the checks of the root [`flake.nix`](flake.nix), which only imports atoms
+([FY-0038][fy-0038]): [atom-workflows][atom-workflows] lints the workflows with
+actionlint and zizmor (`checks.workflows`). Run them with `nix flake check`. The
+weekly run of `test.yaml` also checks the end of life of the nixpkgs branch in
+`flake.lock` ([FY-0036][fy-0036]).
 [`scorecard.yaml`](.github/workflows/scorecard.yaml) runs OpenSSF Scorecard
 through [workflow-scorecard][workflow-scorecard].
 [`audit.yaml`](.github/workflows/audit.yaml) audits the releases of every
@@ -36,8 +40,8 @@ repository each week, see [org/](org/README.md#release-audit).
 This repository is bootstrapped under [FY-0022][fy-0022]. Until the providers of
 its remaining checks are released:
 
-- actionlint, zizmor, shellcheck, shfmt, Prettier, markdownlint, typos and
-  `reuse lint` run locally before every pull request (provider: the atoms).
+- shellcheck, shfmt, Prettier, markdownlint, typos and `reuse lint` run locally
+  before every pull request (provider: the atoms).
 
 ## License
 
@@ -45,8 +49,13 @@ its remaining checks are released:
 Contributor Covenant under [CC-BY-4.0](LICENSES/CC-BY-4.0.txt). Licensing of
 every file is declared in [REUSE.toml](REUSE.toml).
 
+[atom-workflows]: https://github.com/flakeyard/atom-workflows
 [fy-0022]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0022-bootstrap.md
+[fy-0036]:
+  https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0036-check-the-end-of-life-of-nixpkgs-in-flake-lock.md
+[fy-0038]:
+  https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0038-roll-out-the-atoms.md
 [workflow-check-adr-0001]:
   https://github.com/flakeyard/workflow-check/blob/main/docs/adr/records/0001-check-pull-requests-and-pushes.md
 [workflow-check]: https://github.com/flakeyard/workflow-check

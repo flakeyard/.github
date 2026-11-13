@@ -35,7 +35,7 @@ jobs:
           persist-credentials: false
       # The harness of the tests, at the commit that the tests read here.
       - id: lib
-        uses: flakeyard/action-shell-lib@2baa3947a1957691e89b5b86bee8c66e76b4ac00 # v0.2.0
+        uses: flakeyard/action-shell-lib@5c59164109499a225af9b75488caf142802add84 # v0.3.1
       # Needs bash and jq, which the runner has; the stub of gh answers
       # every call, so no token is used.
       - env:
@@ -46,7 +46,7 @@ jobs:
     needs: [unit] # every other job of the workflow
     # Dispatched runs post their final status on every outcome.
     if: ${{ !cancelled() || github.event_name == 'workflow_dispatch' }}
-    uses: flakeyard/workflow-check/.github/workflows/check.yaml@b9c9cf9eee29687de53f70cc8f3da4e1de6b2b30 # v0.3.4
+    uses: flakeyard/workflow-check/.github/workflows/check.yaml@8ce63192a73927d79c2d0b296205702d90da41fa # v0.3.5
     permissions:
       actions: read # own job name and the jobs of the run
       contents: read # repository files through the contents API, checkout

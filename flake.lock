@@ -7,17 +7,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1794581276,
-        "narHash": "sha256-smUhZc8g6pucmqG53Q+ht7wY7cguvOnB2kk1SXu21jA=",
+        "lastModified": 1794585184,
+        "narHash": "sha256-kU+0Y2YKCu1dstioCPpYJekvSEzXlfTMDMoXDGFs3Ro=",
         "ref": "v0",
-        "rev": "648f7c488e6284f185c69bc22d9a8b5d971c3ce2",
+        "rev": "82957679afb098f2c36fbcc1ccdf5d52f3286ba4",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/flakeyard/atom-workflows"
       },
       "original": {
         "ref": "v0",
-        "rev": "648f7c488e6284f185c69bc22d9a8b5d971c3ce2",
+        "rev": "82957679afb098f2c36fbcc1ccdf5d52f3286ba4",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/flakeyard/atom-workflows"

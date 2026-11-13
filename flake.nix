@@ -12,7 +12,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     atom-workflows = {
-      url = "git+https://github.com/flakeyard/atom-workflows?ref=v0&rev=648f7c488e6284f185c69bc22d9a8b5d971c3ce2&shallow=1";
+      url = "git+https://github.com/flakeyard/atom-workflows?ref=v0&rev=82957679afb098f2c36fbcc1ccdf5d52f3286ba4&shallow=1";
       inputs.git-hooks.follows = "git-hooks";
     };
   };

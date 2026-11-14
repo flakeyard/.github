@@ -23,6 +23,24 @@
         "url": "https://github.com/flakeyard/atom-workflows"
       }
     },
+    "atom-workspace": {
+      "locked": {
+        "lastModified": 1794652846,
+        "narHash": "sha256-Qw9t2NkKqGBmOZzhFj86l54e2Hq4g4pw4tCiBtW5fLA=",
+        "ref": "v0",
+        "rev": "272033a287fba41c0ebf6799ea6d43018d786a3e",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/flakeyard/atom-workspace"
+      },
+      "original": {
+        "ref": "v0",
+        "rev": "272033a287fba41c0ebf6799ea6d43018d786a3e",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/flakeyard/atom-workspace"
+      }
+    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -107,6 +125,7 @@
     "root": {
       "inputs": {
         "atom-workflows": "atom-workflows",
+        "atom-workspace": "atom-workspace",
         "flake-parts": "flake-parts",
         "git-hooks": "git-hooks",
         "nixpkgs": "nixpkgs"

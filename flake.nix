@@ -15,6 +15,7 @@
       url = "git+https://github.com/flakeyard/atom-workflows?ref=v0&rev=82957679afb098f2c36fbcc1ccdf5d52f3286ba4&shallow=1";
       inputs.git-hooks.follows = "git-hooks";
     };
+    atom-workspace.url = "git+https://github.com/flakeyard/atom-workspace?ref=v0&rev=272033a287fba41c0ebf6799ea6d43018d786a3e&shallow=1";
   };
 
   outputs =
@@ -25,8 +26,20 @@
         "aarch64-linux"
       ];
       # The flake only imports atoms (FY-0038).
-      imports = [ inputs.atom-workflows.flakeModules.default ];
-      # Until this repository adopts atom-workspace (FY-0038).
-      perSystem.pre-commit.check.enable = false;
+      imports = [
+        inputs.atom-workflows.flakeModules.default
+        inputs.atom-workspace.flakeModules.default
+      ];
+      # The tools that tests/run.sh needs and no atom provides yet;
+      # atom-workspace joins them into devShells.default.
+      perSystem =
+        { pkgs, ... }:
+        {
+          devShells.flakeyard-project = pkgs.mkShellNoCC {
+            packages = with pkgs; [
+              jq
+            ];
+          };
+        };
     };
 }

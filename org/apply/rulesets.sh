@@ -28,11 +28,12 @@ ruleset_id() {
 # upsert_ruleset RULESETS FILE ID: replace the ruleset ID of the API path
 # RULESETS with FILE, or create it when ID is empty.
 upsert_ruleset() {
-  local rulesets=$1 file=$2 id=$3
+  local rulesets=$1 file=$2 id=$3 body
+  body=$(render_ruleset "${file}")
   if [[ -n ${id} ]]; then
-    render_ruleset "${file}" | gh api --silent -X PUT "${rulesets}/${id}" --input -
+    gh api --silent -X PUT "${rulesets}/${id}" --input - <<<"${body}"
   else
-    render_ruleset "${file}" | gh api --silent -X POST "${rulesets}" --input -
+    gh api --silent -X POST "${rulesets}" --input - <<<"${body}"
   fi
 }
 
@@ -57,11 +58,12 @@ warn_unmanaged_rulesets() {
 }
 
 apply_rulesets() {
-  local repo=$1 rulesets existing file id
+  local repo=$1 rulesets existing file name id
   rulesets="repos/${org}/${repo}/rulesets"
   existing=$(list_rulesets "${rulesets}")
   for file in "${here}"/repository/rulesets/*.json; do
-    id=$(ruleset_id "$(jq -r .name "${file}")" <<<"${existing}")
+    name=$(jq -r .name "${file}")
+    id=$(ruleset_id "${name}" <<<"${existing}")
     upsert_ruleset "${rulesets}" "${file}" "${id}"
   done
   warn_unmanaged_rulesets "${repo}" "${existing}"

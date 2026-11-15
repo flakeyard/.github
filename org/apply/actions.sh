@@ -21,11 +21,11 @@ workflow_permissions() {
 # branch, make github-actions[bot] open and approve pull requests. It is
 # therefore set only where a workflow needs it, and cleared everywhere else.
 apply_actions() {
-  local repo=$1 can_approve=false
+  local repo=$1 can_approve=false body
   if creates_pull_requests "${repo}"; then
     can_approve=true
   fi
-  workflow_permissions "${can_approve}" \
-    | gh api --silent -X PUT "repos/${org}/${repo}/actions/permissions/workflow" \
-      --input -
+  body=$(workflow_permissions "${can_approve}")
+  gh api --silent -X PUT "repos/${org}/${repo}/actions/permissions/workflow" \
+    --input - <<<"${body}"
 }

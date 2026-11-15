@@ -94,8 +94,9 @@ escape_data() {
 
 # report REPO TAG PROBLEM: print PROBLEM of the release TAG of REPO as an error.
 report() {
-  local repo=$1 tag=$2 problem=$3
-  printf '::error::%s\n' "$(escape_data "${repo} ${tag}: ${problem}")"
+  local repo=$1 tag=$2 problem=$3 data
+  data=$(escape_data "${repo} ${tag}: ${problem}")
+  printf '::error::%s\n' "${data}"
   mismatches=$((mismatches + 1))
 }
 
@@ -152,10 +153,12 @@ is_release_reviewer() {
 audit_merger() {
   local repo=$1 tag=$2 commit=$3 file=$4 number login
   number=$(release_number "${tag}" "${commit}" "${file}")
+  # shellcheck disable=SC2310 # merger is one command: errexit has nothing to stop.
   if ! login=$(merger "${repo}" "${number}"); then
     report "${repo}" "${tag}" "cannot read who merged pull request #${number}"
     return
   fi
+  # shellcheck disable=SC2310 # a predicate of one command, false is no error.
   is_release_reviewer "${login}" \
     || report "${repo}" "${tag}" "pull request #${number} is merged by ${login}, not by a reviewer of release"
 }
@@ -200,6 +203,7 @@ audit_release() {
   releases_audited=$((releases_audited + 1))
   [[ ${author} == "${bot_login}" ]] \
     || report "${repo}" "${tag}" "released by ${author}, not ${bot_login}"
+  # shellcheck disable=SC2310 # tag_commit is one command: errexit has nothing to stop.
   if ! commit=$(tag_commit "${repo}" "${tag}"); then
     report "${repo}" "${tag}" "cannot read the commit of the tag"
     return

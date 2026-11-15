@@ -11,9 +11,9 @@ readonly listing='orgs/fy/installations?per_page=100'
 # installed JQ: answer the listing of installations with the Apps of
 # installations.json changed by JQ, and the fields the check ignores.
 installed() {
-  local change=$1
-  fixture "${listing}" \
-    "$(jq "{installations: (map(. + {id: 1, app_id: 2}) | ${change})}" "${listed}")"
+  local change=$1 answer
+  answer=$(jq "{installations: (map(. + {id: 1, app_id: 2}) | ${change})}" "${listed}")
+  fixture "${listing}" "${answer}"
 }
 
 # run_settings NAME EXPECTED: run settings.sh.
@@ -31,7 +31,8 @@ finish
 
 setup_org
 installed '.[:1]'
-next_page "${listing}" 2 "$(jq '{installations: .[1:]}' "${listed}")"
+answer=$(jq '{installations: .[1:]}' "${listed}")
+next_page "${listing}" 2 "${answer}"
 run_settings "two pages" ok
 finish
 
@@ -43,7 +44,8 @@ installed 'map(select(.app_slug == "flakeyard-bot")
   + [{app_slug: "stranger", repository_selection: "all", permissions: {}}]'
 run_settings "drift" fail
 # The settings are applied before the check.
-expect call "PATCH orgs/fy --input=$(jq -c . "${root}/org/organization/settings.json")"
+body=$(jq -c . "${root}/org/organization/settings.json")
+expect call "PATCH orgs/fy --input=${body}"
 expect call 'orgs/fy/actions/permissions/self-hosted-runners'
 expect message 'renovate: not installed'
 expect message 'flakeyard-bot: installed for selected repositories, not all'

@@ -17,8 +17,9 @@ done
 # the API path PATH as one JSON list. FILTER must pick objects or lists: gh
 # prints strings without quotes.
 api_list() {
-  local path=$1 filter=$2
-  gh api --paginate "${path}" --jq "${filter}" | jq -s .
+  local path=$1 filter=$2 items
+  items=$(gh api --paginate "${path}" --jq "${filter}")
+  jq -s . <<<"${items}"
 }
 
 # repositories: print the name of every non-archived repository of $org.

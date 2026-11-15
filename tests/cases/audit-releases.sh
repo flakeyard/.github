@@ -34,8 +34,9 @@ releases() {
 
 # tag REPO TAG COMMIT: make the tag TAG of REPO point to COMMIT.
 tag() {
-  local repo=$1 tag=$2 commit=$3
-  fixture "repos/fy/${repo}/commits/tags/${tag}" "$(jq -n --arg sha "${commit}" '{sha: $sha}')"
+  local repo=$1 tag=$2 commit=$3 answer
+  answer=$(jq -n --arg sha "${commit}" '{sha: $sha}')
+  fixture "repos/fy/${repo}/commits/tags/${tag}" "${answer}"
 }
 
 # pull NUMBER VERSION COMMIT HEAD BASE LABEL [MERGED]: print the pull request
@@ -62,14 +63,14 @@ pull() {
 # pull requests on stdin, and each pull request on its own, merged by
 # .merged_by.login or else by $owner. Like the API, the list has no merged_by.
 pulls() {
-  local repo=$1 page=$2 list number
+  local repo=$1 page=$2 list number answer
   list=$(jq -s .)
   jq 'map(del(.merged_by))' <<<"${list}" \
     | fixture_page "repos/fy/${repo}/pulls?state=all&per_page=100" "${page}"
   for number in $(jq -r '.[].number' <<<"${list}"); do
-    fixture "repos/fy/${repo}/pulls/${number}" "$(jq --argjson n "${number}" \
-      --arg owner "${owner}" '.[] | select(.number == $n)
-        | .merged_by //= {login: $owner}' <<<"${list}")"
+    answer=$(jq --argjson n "${number}" --arg owner "${owner}" \
+      '.[] | select(.number == $n) | .merged_by //= {login: $owner}' <<<"${list}")
+    fixture "repos/fy/${repo}/pulls/${number}" "${answer}"
   done
 }
 

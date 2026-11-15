@@ -5,6 +5,6 @@
 http_status() {
   local path=$1 response
   # gh fails on any status but 2xx; the status line is printed anyway.
-  response=$(gh api -i "$path" 2>/dev/null) || true
-  awk 'NR == 1 { print $2 }' <<<"$response"
+  response=$(gh api -i "${path}" 2>/dev/null) || true
+  awk 'NR == 1 { print $2 }' <<<"${response}"
 }

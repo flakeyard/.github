@@ -8,16 +8,16 @@
 #   setup_org; fixture ...; run NAME EXPECTED org/SCRIPT [NAME=VALUE...] [-- ARG...]; expect ...; finish
 
 tests=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-root=$(dirname -- "$tests")
+root=$(dirname -- "${tests}")
 # shellcheck source=/dev/null
 source "${SHELL_LIB:?}/internal/testing/case.sh"
 # shellcheck source=/dev/null
-source "$SHELL_LIB/internal/testing/fixtures.sh"
+source "${SHELL_LIB}/internal/testing/fixtures.sh"
 # shellcheck source=/dev/null
-source "$SHELL_LIB/internal/testing/checks.sh"
+source "${SHELL_LIB}/internal/testing/checks.sh"
 # The scripts that run takes paths in.
 # shellcheck disable=SC2034 # read by checks.sh
-code_root=$root
+code_root=${root}
 
 # setup_org: setup for one case: the organization fy, and a stub of gh that
 # logs reads too and answers a read without a fixture with nothing, as an empty
@@ -32,5 +32,5 @@ setup_org() {
 fixture_page() {
   local path=$1 page=$2 body
   body=$(cat)
-  if ((page == 1)); then fixture "$path" "$body"; else next_page "$path" "$page" "$body"; fi
+  if ((page == 1)); then fixture "${path}" "${body}"; else next_page "${path}" "${page}" "${body}"; fi
 }

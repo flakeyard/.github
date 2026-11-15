@@ -13,24 +13,24 @@ set -euo pipefail
 
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=lib.sh
-source "$here/lib.sh"
+source "${here}/lib.sh"
 
 declare -A patterns=([BOT_APP_ID]='^[0-9]+$' [BOT_CLIENT_ID]='^Iv[0-9A-Za-z.]+$')
 # Validate before anything is changed.
 for name in "${!patterns[@]}"; do
-  [[ -z ${!name:-} || ${!name} =~ ${patterns[$name]} ]] \
-    || die "$name has an unexpected format: ${!name}"
+  [[ -z ${!name:-} || ${!name} =~ ${patterns[${name}]} ]] \
+    || die "${name} has an unexpected format: ${!name}"
 done
 
 # shellcheck source=settings/installations.sh
-source "$here/settings/installations.sh"
+source "${here}/settings/installations.sh"
 
-cd -- "$here/organization"
+cd -- "${here}/organization"
 
 # set_org METHOD PATH FILE: send FILE to orgs/$org/PATH.
 set_org() {
-  gh api --silent -X "$1" "orgs/$org$2" --input "$3"
-  printf '%s orgs/%s%s\n' "$1" "$org" "$2"
+  gh api --silent -X "$1" "orgs/${org}$2" --input "$3"
+  printf '%s orgs/%s%s\n' "$1" "${org}" "$2"
 }
 
 set_org PATCH "" settings.json
@@ -50,8 +50,8 @@ set_org PUT /actions/permissions/self-hosted-runners \
 
 for name in "${!patterns[@]}"; do
   if [[ -n ${!name:-} ]]; then
-    gh variable set "$name" --org "$org" --visibility all --body "${!name}"
-    printf 'variable %s\n' "$name"
+    gh variable set "${name}" --org "${org}" --visibility all --body "${!name}"
+    printf 'variable %s\n' "${name}"
   fi
 done
 

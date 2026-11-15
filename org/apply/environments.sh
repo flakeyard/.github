@@ -21,26 +21,26 @@ readonly publish_reviewers=release
 # branch_policies ENV: print "id<TAB>type<TAB>name" of every deployment policy.
 branch_policies() {
   local env=$1
-  gh api --paginate "$env/deployment-branch-policies?per_page=100" \
+  gh api --paginate "${env}/deployment-branch-policies?per_page=100" \
     --jq '.branch_policies[] | [.id, .type // "branch", .name] | @tsv'
 }
 
 # allow_deployment_branches ENV: make the release branches the only policies.
 allow_deployment_branches() {
   local env=$1 policies id type name kept=() branch
-  policies=$(branch_policies "$env")
+  policies=$(branch_policies "${env}")
   while IFS=$'\t' read -r id type name; do
-    [[ -n $id ]] || continue
-    if [[ $type == branch ]] && contains "$name" "${deploy_branches[@]}"; then
-      kept+=("$name")
+    [[ -n ${id} ]] || continue
+    if [[ ${type} == branch ]] && contains "${name}" "${deploy_branches[@]}"; then
+      kept+=("${name}")
     else
-      gh api --silent -X DELETE "$env/deployment-branch-policies/$id"
+      gh api --silent -X DELETE "${env}/deployment-branch-policies/${id}"
     fi
-  done <<<"$policies"
+  done <<<"${policies}"
   for branch in "${deploy_branches[@]}"; do
-    contains "$branch" "${kept[@]}" && continue
-    gh api --silent -X POST "$env/deployment-branch-policies" \
-      -f name="$branch" -f type=branch
+    contains "${branch}" "${kept[@]}" && continue
+    gh api --silent -X POST "${env}/deployment-branch-policies" \
+      -f name="${branch}" -f type=branch
   done
 }
 
@@ -49,9 +49,9 @@ allow_deployment_branches() {
 # without that file has no reviewers.
 environment_reviewers() {
   local list=$1 file
-  file="$here/repository/environments/$list-reviewers.json"
-  if [[ -e $file ]]; then
-    jq -c 'map({type, id})' "$file"
+  file="${here}/repository/environments/${list}-reviewers.json"
+  if [[ -e ${file} ]]; then
+    jq -c 'map({type, id})' "${file}"
   else
     printf '[]\n'
   fi
@@ -64,13 +64,13 @@ environment_reviewers() {
 # a reviewer approves it, and only on a deploy branch.
 create_deploy_environment() {
   local env=$1 reviewers=$2
-  jq -n --argjson reviewers "$reviewers" '{
+  jq -n --argjson reviewers "${reviewers}" '{
     reviewers: $reviewers,
     prevent_self_review: false,
     can_admins_bypass: false,
     deployment_branch_policy:
       {protected_branches: false, custom_branch_policies: true}
-  }' | gh api --silent -X PUT "$env" --input -
+  }' | gh api --silent -X PUT "${env}" --input -
 }
 
 # deploy_environment REPO NAME [LIST]: create the environment NAME of REPO,
@@ -78,24 +78,24 @@ create_deploy_environment() {
 # LIST, which is NAME by default.
 deploy_environment() {
   local repo=$1 name=$2 list=${3:-$2} env reviewers
-  env="repos/$org/$repo/environments/$name"
-  reviewers=$(environment_reviewers "$list")
-  create_deploy_environment "$env" "$reviewers"
-  allow_deployment_branches "$env"
+  env="repos/${org}/${repo}/environments/${name}"
+  reviewers=$(environment_reviewers "${list}")
+  create_deploy_environment "${env}" "${reviewers}"
+  allow_deployment_branches "${env}"
 }
 
 # store_secret REPO ENVIRONMENT SECRET FILE: store the contents of FILE as
 # SECRET of ENVIRONMENT, when FILE is given.
 store_secret() {
   local repo=$1 environment=$2 secret=$3 file=$4
-  [[ -n $file ]] || return 0
-  gh secret set "$secret" --repo "$org/$repo" --env "$environment" <"$file"
+  [[ -n ${file} ]] || return 0
+  gh secret set "${secret}" --repo "${org}/${repo}" --env "${environment}" <"${file}"
 }
 
 # environment_names REPO: print the name of every environment of REPO.
 environment_names() {
   local repo=$1
-  gh api --paginate "repos/$org/$repo/environments?per_page=100" \
+  gh api --paginate "repos/${org}/${repo}/environments?per_page=100" \
     --jq '.environments[].name'
 }
 
@@ -105,14 +105,14 @@ environment_names() {
 warn_unmanaged_environments() {
   local repo=$1 names name unmanaged=()
   shift
-  names=$(environment_names "$repo")
+  names=$(environment_names "${repo}")
   while IFS= read -r name; do
-    [[ -n $name ]] || continue
-    contains "$name" "$@" || unmanaged+=("$name")
-  done <<<"$names"
+    [[ -n ${name} ]] || continue
+    contains "${name}" "$@" || unmanaged+=("${name}")
+  done <<<"${names}"
   ((${#unmanaged[@]} > 0)) || return 0
   printf 'warning: %s: environments not in repository/environments/:\n' \
-    "$repo" >&2
+    "${repo}" >&2
   printf '%s\n' "${unmanaged[@]}" >&2
 }
 
@@ -124,19 +124,19 @@ warn_unmanaged_environments() {
 # reaches a reusable workflow only under the name the caller passes.
 apply_environments() {
   local repo=$1 managed=()
-  if is_released "$repo"; then
-    deploy_environment "$repo" release
-    store_secret "$repo" release APP_PRIVATE_KEY "$bot_key_file"
+  if is_released "${repo}"; then
+    deploy_environment "${repo}" release
+    store_secret "${repo}" release APP_PRIVATE_KEY "${bot_key_file}"
     managed+=(release)
   fi
-  if publishes_images "$repo"; then
-    deploy_environment "$repo" publish "$publish_reviewers"
+  if publishes_images "${repo}"; then
+    deploy_environment "${repo}" publish "${publish_reviewers}"
     managed+=(publish)
   fi
-  if pushes_to_cache "$repo"; then
-    deploy_environment "$repo" cache
-    store_secret "$repo" cache CACHIX_AUTH_TOKEN "$cache_token_file"
+  if pushes_to_cache "${repo}"; then
+    deploy_environment "${repo}" cache
+    store_secret "${repo}" cache CACHIX_AUTH_TOKEN "${cache_token_file}"
     managed+=(cache)
   fi
-  warn_unmanaged_environments "$repo" "${managed[@]}"
+  warn_unmanaged_environments "${repo}" "${managed[@]}"
 }

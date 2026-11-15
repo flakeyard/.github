@@ -8,21 +8,21 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../lib.sh"
 
 readonly owner='{"type":"User","id":264014534}'
 readonly environments=repos/fy/atom-x/environments
-readonly policies=$environments/release/deployment-branch-policies
+readonly policies=${environments}/release/deployment-branch-policies
 readonly image_environments=repos/fy/image-w/environments
-readonly publish_policies=$image_environments/publish/deployment-branch-policies
+readonly publish_policies=${image_environments}/publish/deployment-branch-policies
 
 # put NAME [REPO]: the request that creates the environment NAME of REPO,
 # atom-x by default.
 put() {
   local name=$1 repo=${2:-atom-x}
-  printf 'PUT repos/fy/%s/environments/%s' "$repo" "$name"
+  printf 'PUT repos/fy/%s/environments/%s' "${repo}" "${name}"
 }
 
 # environment REVIEWERS: the body that creates a deploy environment.
 environment() {
   local reviewers=$1
-  jq -cn --argjson reviewers "$reviewers" '{
+  jq -cn --argjson reviewers "${reviewers}" '{
     reviewers: $reviewers,
     prevent_self_review: false,
     can_admins_bypass: false,
@@ -34,7 +34,7 @@ environment() {
 # listing REPO: the request that lists the environments of REPO.
 listing() {
   local repo=$1
-  printf 'repos/fy/%s/environments?per_page=100' "$repo"
+  printf 'repos/fy/%s/environments?per_page=100' "${repo}"
 }
 
 # page NAME...: print a page of the listing of environments with the
@@ -42,7 +42,7 @@ listing() {
 page() {
   local name
   for name; do
-    jq -n --arg name "$name" '{id: 1, name: $name}'
+    jq -n --arg name "${name}" '{id: 1, name: $name}'
   done | jq -s '{total_count: length, environments: .}'
 }
 
@@ -51,7 +51,7 @@ page() {
 environments() {
   local repo=$1
   shift
-  fixture "$(listing "$repo")" "$(page "$@")"
+  fixture "$(listing "${repo}")" "$(page "$@")"
 }
 
 # apply_to NAME EXPECTED REPO [NAME=VALUE...]: run apply.sh on REPO with the
@@ -59,11 +59,11 @@ environments() {
 apply_to() {
   local name=$1 expected=$2 repo=$3
   shift 3
-  run "$name" "$expected" org/apply.sh BOT_APP_ID=42 "$@" -- "$repo"
+  run "${name}" "${expected}" org/apply.sh BOT_APP_ID=42 "$@" -- "${repo}"
 }
 
 setup_org
-fixture "$policies?per_page=100" '{"branch_policies": [
+fixture "${policies}?per_page=100" '{"branch_policies": [
   {"id": 1, "name": "main", "type": "branch"},
   {"id": 2, "name": "*", "type": "branch"},
   {"id": 3, "name": "release/v*", "type": "tag"}
@@ -71,14 +71,14 @@ fixture "$policies?per_page=100" '{"branch_policies": [
 apply_to "atom-x" ok atom-x
 expect message 'atom-x: done'
 # release requires the owner, cache no reviewer.
-expect call "$(put release) --input=$(environment "[$owner]")"
+expect call "$(put release) --input=$(environment "[${owner}]")"
 expect call "$(put cache) --input=$(environment '[]')"
 # The policy main is kept, the policy * and the tag policy release/v* are
 # deleted, and the branch policy release/v* is added.
-expect no-call "$policies/1"
-expect call "DELETE $policies/2"
-expect call "DELETE $policies/3"
-expect call "POST $policies name=release/v* type=branch"
+expect no-call "${policies}/1"
+expect call "DELETE ${policies}/2"
+expect call "DELETE ${policies}/3"
+expect call "POST ${policies} name=release/v* type=branch"
 finish
 
 setup_org
@@ -94,16 +94,16 @@ apply_to "image-w gets release and publish" ok image-w
 expect call repos/fy/image-w/environments/release
 expect no-call repos/fy/image-w/environments/cache
 # publish requires the owner of release, and allows main and release/v*.
-expect call "$(put publish image-w) --input=$(environment "[$owner]")"
-expect call "POST $publish_policies name=main type=branch"
-expect call "POST $publish_policies name=release/v* type=branch"
+expect call "$(put publish image-w) --input=$(environment "[${owner}]")"
+expect call "POST ${publish_policies} name=main type=branch"
+expect call "POST ${publish_policies} name=release/v* type=branch"
 finish
 
 # Publication uses GITHUB_TOKEN, so the bot key stays in "release" only.
 setup_org
 # shellcheck disable=SC2154 # work comes from setup of the harness.
-printf 'key\n' >"$work/key.pem"
-apply_to "image-w with the key" ok image-w BOT_PRIVATE_KEY_FILE="$work/key.pem"
+printf 'key\n' >"${work}/key.pem"
+apply_to "image-w with the key" ok image-w BOT_PRIVATE_KEY_FILE="${work}/key.pem"
 expect call 'secret set APP_PRIVATE_KEY --repo fy/image-w --env release'
 expect no-call '--env publish'
 finish

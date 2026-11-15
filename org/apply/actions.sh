@@ -12,9 +12,9 @@ creates_pull_requests() { is_released "$1"; }
 # GITHUB_TOKEN create and approve pull requests set to CAN_APPROVE.
 workflow_permissions() {
   local can_approve=$1
-  jq --argjson can_approve "$can_approve" \
+  jq --argjson can_approve "${can_approve}" \
     '. + {can_approve_pull_request_reviews: $can_approve}' \
-    "$here/repository/actions/workflow.json"
+    "${here}/repository/actions/workflow.json"
 }
 
 # The flag lets every workflow of the repository, and so anyone who can push a
@@ -22,10 +22,10 @@ workflow_permissions() {
 # therefore set only where a workflow needs it, and cleared everywhere else.
 apply_actions() {
   local repo=$1 can_approve=false
-  if creates_pull_requests "$repo"; then
+  if creates_pull_requests "${repo}"; then
     can_approve=true
   fi
-  workflow_permissions "$can_approve" \
-    | gh api --silent -X PUT "repos/$org/$repo/actions/permissions/workflow" \
+  workflow_permissions "${can_approve}" \
+    | gh api --silent -X PUT "repos/${org}/${repo}/actions/permissions/workflow" \
       --input -
 }

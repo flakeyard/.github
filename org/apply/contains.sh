@@ -6,7 +6,7 @@ contains() {
   local word=$1 item
   shift
   for item; do
-    [[ $item == "$word" ]] && return 0
+    [[ ${item} == "${word}" ]] && return 0
   done
   return 1
 }

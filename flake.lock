@@ -25,17 +25,17 @@
     },
     "atom-workspace": {
       "locked": {
-        "lastModified": 1794652846,
-        "narHash": "sha256-Qw9t2NkKqGBmOZzhFj86l54e2Hq4g4pw4tCiBtW5fLA=",
+        "lastModified": 1794654303,
+        "narHash": "sha256-xhxguK3d06jf2KWB2pdmGmPOv2BByXR2OodSTDv+ps0=",
         "ref": "v0",
-        "rev": "272033a287fba41c0ebf6799ea6d43018d786a3e",
+        "rev": "53d4d101ec71025dbb19da3d423455e72e10198a",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/flakeyard/atom-workspace"
       },
       "original": {
         "ref": "v0",
-        "rev": "272033a287fba41c0ebf6799ea6d43018d786a3e",
+        "rev": "53d4d101ec71025dbb19da3d423455e72e10198a",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/flakeyard/atom-workspace"

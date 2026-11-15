@@ -10,11 +10,11 @@ readonly jq_glob='def glob: "^" + (gsub("\\."; "\\.") | gsub("\\*"; ".*")) + "$"
 # under org/repository.
 matches_glob() {
   local file=$1 repo=$2 status=0
-  jq -e --arg repo "$repo" "$jq_glob"'
+  jq -e --arg repo "${repo}" "${jq_glob}"'
     any(.[]; glob as $re | $repo | test($re))
-  ' "$here/repository/$file" >/dev/null || status=$?
+  ' "${here}/repository/${file}" >/dev/null || status=$?
   # jq -e exits with 1 for false and above 1 for errors.
-  ((status <= 1)) || die "cannot read $file"
+  ((status <= 1)) || die "cannot read ${file}"
   ((status == 0))
 }
 

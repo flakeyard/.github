@@ -10,7 +10,7 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/../lib.sh"
 readonly failing='PUT repos/fy/atom-y/actions/permissions/workflow 409'
 
 setup_org
-apply FAIL_ON="$failing"
+apply FAIL_ON="${failing}"
 run "one fails" fail org/apply.sh BOT_APP_ID=42 -- atom-x atom-y atom-z
 expect message 'atom-x: done'
 expect no-message 'atom-y: done'
@@ -22,7 +22,7 @@ expect message 'not applied, run apply.sh again for: atom-y'
 finish
 
 setup_org
-apply FAIL_ON="$failing"
+apply FAIL_ON="${failing}"
 run "only one" fail org/apply.sh BOT_APP_ID=42 -- atom-y
 expect message 'not applied, run apply.sh again for: atom-y'
 finish

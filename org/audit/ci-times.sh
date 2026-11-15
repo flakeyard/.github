@@ -17,7 +17,7 @@ set -euo pipefail
 
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=lib.sh
-source "$here/../lib.sh"
+source "${here}/../lib.sh"
 
 readonly usage='usage: ci-times.sh [--since YYYY-MM-DD] [--json] [repo...]'
 readonly day_form='^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
@@ -53,7 +53,7 @@ readonly jq_definitions='
 # repository $repo. The jobs time of a run is from the start of its first job
 # to the end of its last, so it leaves out the wait for the first runner.
 # shellcheck disable=SC2016 # jq variables, not shell ones
-readonly jq_summary="$jq_definitions"'
+readonly jq_summary="${jq_definitions}"'
   ($jobs[0] | map(select(timed))) as $ran
   | ($ran | group_by(.run_id) | map({key: "\(.[0].run_id)", value: .}) | from_entries) as $by_run
   | def jobs_time: $by_run["\(.id)"] // [] | if . == [] then null
@@ -120,21 +120,21 @@ parse_arguments() {
     case $1 in
       --since) since=${2-} && shift ;;
       --json) format=json ;;
-      -*) die "$usage" ;;
+      -*) die "${usage}" ;;
       *) targets+=("$1") ;;
     esac
     shift
   done
-  [[ -n $since ]] || since=$(days_ago "$default_days")
-  [[ $since =~ $day_form ]] || die "not a day: $since; $usage"
+  [[ -n ${since} ]] || since=$(days_ago "${default_days}")
+  [[ ${since} =~ ${day_form} ]] || die "not a day: ${since}; ${usage}"
 }
 
 # ci_workflow_id REPO: print the ID of the CI workflow of REPO, or nothing
 # when REPO has none.
 ci_workflow_id() {
   local repo=$1
-  api_list "repos/$org/$repo/actions/workflows?per_page=100" '.workflows[]' \
-    | jq -r --arg form "$ci_workflow" 'first(.[] | select(.path | test($form))) | .id'
+  api_list "repos/${org}/${repo}/actions/workflows?per_page=100" '.workflows[]' \
+    | jq -r --arg form "${ci_workflow}" 'first(.[] | select(.path | test($form))) | .id'
 }
 
 # ci_runs REPO WORKFLOW FILE: store the runs of WORKFLOW of REPO created since
@@ -142,29 +142,29 @@ ci_workflow_id() {
 # filter; split the window when a repository has more.
 ci_runs() {
   local repo=$1 workflow=$2 file=$3
-  api_list "repos/$org/$repo/actions/workflows/$workflow/runs?created=>=$since&per_page=100" \
-    '.workflow_runs[]' >"$file"
+  api_list "repos/${org}/${repo}/actions/workflows/${workflow}/runs?created=>=${since}&per_page=100" \
+    '.workflow_runs[]' >"${file}"
 }
 
 # run_jobs REPO RUNS FILE: store the jobs of the latest attempt of every timed run
 # of the list RUNS as one JSON list in FILE.
 run_jobs() {
   local repo=$1 runs=$2 file=$3 id
-  for id in $(jq -r "$jq_definitions"' .[] | select(timed) | .id' "$runs"); do
-    gh api --paginate "repos/$org/$repo/actions/runs/$id/jobs?per_page=100" --jq '.jobs[]'
-  done | jq -s . >"$file"
+  for id in $(jq -r "${jq_definitions}"' .[] | select(timed) | .id' "${runs}"); do
+    gh api --paginate "repos/${org}/${repo}/actions/runs/${id}/jobs?per_page=100" --jq '.jobs[]'
+  done | jq -s . >"${file}"
 }
 
 # summarize REPO DIR: print the numbers of REPO as JSON, with DIR for
 # temporary files; nothing when REPO has no CI workflow.
 summarize() {
   local repo=$1 dir=$2 workflow
-  workflow=$(ci_workflow_id "$repo")
-  [[ -n $workflow ]] || return 0
-  ci_runs "$repo" "$workflow" "$dir/runs.json"
-  run_jobs "$repo" "$dir/runs.json" "$dir/jobs.json"
-  jq --arg repo "$repo" --slurpfile jobs "$dir/jobs.json" "$jq_summary" \
-    "$dir/runs.json"
+  workflow=$(ci_workflow_id "${repo}")
+  [[ -n ${workflow} ]] || return 0
+  ci_runs "${repo}" "${workflow}" "${dir}/runs.json"
+  run_jobs "${repo}" "${dir}/runs.json" "${dir}/jobs.json"
+  jq --arg repo "${repo}" --slurpfile jobs "${dir}/jobs.json" "${jq_summary}" \
+    "${dir}/runs.json"
 }
 
 # report_json DIR: print the numbers of every repository of repos as one JSON
@@ -172,8 +172,8 @@ summarize() {
 report_json() {
   local dir=$1 repo
   for repo in "${repos[@]}"; do
-    summarize "$repo" "$dir"
-  done | jq -s --arg since "$since" '{since: $since, repositories: .}'
+    summarize "${repo}" "${dir}"
+  done | jq -s --arg since "${since}" '{since: $since, repositories: .}'
 }
 
 parse_arguments "$@"
@@ -183,9 +183,9 @@ work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 
 # A file, not a variable, so that a failing request stops the script.
-report_json "$work" >"$work/report.json"
-if [[ $format == json ]]; then
-  cat -- "$work/report.json"
+report_json "${work}" >"${work}/report.json"
+if [[ ${format} == json ]]; then
+  cat -- "${work}/report.json"
 else
-  jq -r "$jq_markdown" "$work/report.json"
+  jq -r "${jq_markdown}" "${work}/report.json"
 fi

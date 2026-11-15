@@ -45,7 +45,7 @@ readonly jq_installation_problems='
 
 # installed_apps: print the installations of $org as one JSON list.
 installed_apps() {
-  api_list "orgs/$org/installations?per_page=100" '.installations[]'
+  api_list "orgs/${org}/installations?per_page=100" '.installations[]'
 }
 
 # check_installations: print every difference between installations.json and
@@ -53,10 +53,10 @@ installed_apps() {
 check_installations() {
   local installed problems
   installed=$(installed_apps) || return
-  problems=$(jq -r --argjson installed "$installed" \
-    "$jq_installation_problems" installations.json) || return
-  if [[ -n $problems ]]; then
-    printf 'GitHub Apps differ from installations.json:\n%s\n' "$problems" >&2
+  problems=$(jq -r --argjson installed "${installed}" \
+    "${jq_installation_problems}" installations.json) || return
+  if [[ -n ${problems} ]]; then
+    printf 'GitHub Apps differ from installations.json:\n%s\n' "${problems}" >&2
     return 1
   fi
   printf 'installations of GitHub Apps checked\n'

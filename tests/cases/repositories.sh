@@ -14,30 +14,30 @@ readonly listing='orgs/fy/repos?per_page=100'
 run_without_repositories() {
   local name=$1 expected=$2 script=$3
   fixed_time 2026-11-12T12:00:00Z
-  run "$script: $name" "$expected" "org/$script" BOT_APP_ID=42 BOT_LOGIN='bot[bot]'
+  run "${script}: ${name}" "${expected}" "org/${script}" BOT_APP_ID=42 BOT_LOGIN='bot[bot]'
 }
 
 for script in apply.sh audit/releases.sh audit/ci-times.sh; do
   setup_org
-  fixture "$listing" \
+  fixture "${listing}" \
     '[{"name": "atom-x", "archived": false}, {"name": "old", "archived": true}]'
-  next_page "$listing" 2 '[{"name": "atom-y", "archived": false}]'
-  run_without_repositories "every page" ok "$script"
-  expect call "GET $listing"
+  next_page "${listing}" 2 '[{"name": "atom-y", "archived": false}]'
+  run_without_repositories "every page" ok "${script}"
+  expect call "GET ${listing}"
   expect call repos/fy/atom-x
   expect call repos/fy/atom-y
   expect no-call repos/fy/old
   finish
 
   setup_org
-  fixture "$listing" '[{"name": "old", "archived": true}]'
-  run_without_repositories "none" fail "$script"
+  fixture "${listing}" '[{"name": "old", "archived": true}]'
+  run_without_repositories "none" fail "${script}"
   expect message 'no repositories in fy'
   finish
 
   setup_org
-  apply FAIL_ON="GET $listing 500"
-  run_without_repositories "listing fails" fail "$script"
+  apply FAIL_ON="GET ${listing} 500"
+  run_without_repositories "listing fails" fail "${script}"
   expect no-call repos/fy/
   finish
 done

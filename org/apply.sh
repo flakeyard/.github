@@ -19,56 +19,56 @@ set -euo pipefail
 
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=lib.sh
-source "$here/lib.sh"
+source "${here}/lib.sh"
 
 bot_app_id=${BOT_APP_ID:-}
-if [[ -z $bot_app_id ]]; then
-  bot_app_id=$(gh variable get BOT_APP_ID --org "$org" 2>/dev/null) || true
+if [[ -z ${bot_app_id} ]]; then
+  bot_app_id=$(gh variable get BOT_APP_ID --org "${org}" 2>/dev/null) || true
 fi
-[[ $bot_app_id =~ ^[0-9]+$ ]] \
+[[ ${bot_app_id} =~ ^[0-9]+$ ]] \
   || die "BOT_APP_ID is not set (environment or organization variable)"
 
 bot_key_file=${BOT_PRIVATE_KEY_FILE:-}
-[[ -z $bot_key_file || -r $bot_key_file ]] \
-  || die "cannot read BOT_PRIVATE_KEY_FILE: $bot_key_file"
+[[ -z ${bot_key_file} || -r ${bot_key_file} ]] \
+  || die "cannot read BOT_PRIVATE_KEY_FILE: ${bot_key_file}"
 
 cache_token_file=${CACHIX_AUTH_TOKEN_FILE:-}
-[[ -z $cache_token_file || -r $cache_token_file ]] \
-  || die "cannot read CACHIX_AUTH_TOKEN_FILE: $cache_token_file"
+[[ -z ${cache_token_file} || -r ${cache_token_file} ]] \
+  || die "cannot read CACHIX_AUTH_TOKEN_FILE: ${cache_token_file}"
 
 # The steps and their helpers, one file per concern.
 # shellcheck source=apply/http.sh
-source "$here/apply/http.sh"
+source "${here}/apply/http.sh"
 # shellcheck source=apply/glob.sh
-source "$here/apply/glob.sh"
+source "${here}/apply/glob.sh"
 # shellcheck source=apply/contains.sh
-source "$here/apply/contains.sh"
+source "${here}/apply/contains.sh"
 # shellcheck source=apply/settings.sh
-source "$here/apply/settings.sh"
+source "${here}/apply/settings.sh"
 # shellcheck source=apply/actions.sh
-source "$here/apply/actions.sh"
+source "${here}/apply/actions.sh"
 # shellcheck source=apply/labels.sh
-source "$here/apply/labels.sh"
+source "${here}/apply/labels.sh"
 # shellcheck source=apply/topics.sh
-source "$here/apply/topics.sh"
+source "${here}/apply/topics.sh"
 # shellcheck source=apply/rulesets.sh
-source "$here/apply/rulesets.sh"
+source "${here}/apply/rulesets.sh"
 # shellcheck source=apply/environments.sh
-source "$here/apply/environments.sh"
+source "${here}/apply/environments.sh"
 # shellcheck source=apply/security.sh
-source "$here/apply/security.sh"
+source "${here}/apply/security.sh"
 
 # apply_repository REPO: apply every step to REPO.
 apply_repository() {
   local repo=$1
-  apply_settings "$repo"
-  apply_actions "$repo"
-  apply_labels "$repo"
-  apply_topics "$repo"
-  apply_rulesets "$repo"
-  apply_environments "$repo"
-  apply_security "$repo"
-  printf '%s: done\n' "$repo"
+  apply_settings "${repo}"
+  apply_actions "${repo}"
+  apply_labels "${repo}"
+  apply_topics "${repo}"
+  apply_rulesets "${repo}"
+  apply_environments "${repo}"
+  apply_security "${repo}"
+  printf '%s: done\n' "${repo}"
 }
 
 # apply_or_record REPO: apply every step to REPO, and add REPO to failed when
@@ -80,20 +80,20 @@ apply_or_record() {
   set +e
   (
     set -e
-    apply_repository "$repo"
+    apply_repository "${repo}"
   )
   status=$?
   set -e
   ((status == 0)) && return
-  printf '%s: failed\n' "$repo" >&2
-  failed+=("$repo")
+  printf '%s: failed\n' "${repo}" >&2
+  failed+=("${repo}")
 }
 
 select_repositories "$@"
 
 failed=()
 for repo in "${repos[@]}"; do
-  apply_or_record "$repo"
+  apply_or_record "${repo}"
 done
 ((${#failed[@]} == 0)) \
   || die "not applied, run apply.sh again for: ${failed[*]}"

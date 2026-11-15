@@ -4,11 +4,11 @@
 
 apply_settings() {
   local repo=$1
-  gh api --silent -X PATCH "repos/$org/$repo" \
-    --input "$here/repository/settings.json"
+  gh api --silent -X PATCH "repos/${org}/${repo}" \
+    --input "${here}/repository/settings.json"
   # Discussions of the .github repository are the discussions of the whole
   # organization.
-  if [[ $repo == .github ]]; then
-    gh api --silent -X PATCH "repos/$org/$repo" -F has_discussions=true
+  if [[ ${repo} == .github ]]; then
+    gh api --silent -X PATCH "repos/${org}/${repo}" -F has_discussions=true
   fi
 }

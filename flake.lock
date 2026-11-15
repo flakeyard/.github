@@ -1,5 +1,57 @@
 {
   "nodes": {
+    "atom-nix": {
+      "inputs": {
+        "git-hooks": [
+          "git-hooks"
+        ],
+        "treefmt-nix": [
+          "treefmt-nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1794760271,
+        "narHash": "sha256-2MEE5UeVYo/nBBRb4k40Jm22F6RMEOMM1sfEyuTe0n0=",
+        "ref": "v0",
+        "rev": "d8e5b1d8f367d27181fbf6e2616c9e6c5ecbbafa",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/flakeyard/atom-nix"
+      },
+      "original": {
+        "ref": "v0",
+        "rev": "d8e5b1d8f367d27181fbf6e2616c9e6c5ecbbafa",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/flakeyard/atom-nix"
+      }
+    },
+    "atom-shell": {
+      "inputs": {
+        "git-hooks": [
+          "git-hooks"
+        ],
+        "treefmt-nix": [
+          "treefmt-nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1794760499,
+        "narHash": "sha256-/bO49KAeVKd92ctpzTyKXvBjM5/+65dISrjYcE1ce8c=",
+        "ref": "v0",
+        "rev": "c6191ba89fd4b4be340cbddfc3fdbeb7f82d3cc5",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/flakeyard/atom-shell"
+      },
+      "original": {
+        "ref": "v0",
+        "rev": "c6191ba89fd4b4be340cbddfc3fdbeb7f82d3cc5",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/flakeyard/atom-shell"
+      }
+    },
     "atom-workflows": {
       "inputs": {
         "git-hooks": [
@@ -124,11 +176,37 @@
     },
     "root": {
       "inputs": {
+        "atom-nix": "atom-nix",
+        "atom-shell": "atom-shell",
         "atom-workflows": "atom-workflows",
         "atom-workspace": "atom-workspace",
         "flake-parts": "flake-parts",
         "git-hooks": "git-hooks",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "treefmt-nix": "treefmt-nix"
+      }
+    },
+    "treefmt-nix": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791885023,
+        "narHash": "sha256-C3alQ2MEt0zVrUSho5NUDo3jmhbff72++bfwoqT9Omo=",
+        "ref": "main",
+        "rev": "0d6d739a833ba9a9c93034862e4a7b061a062a1c",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/numtide/treefmt-nix"
+      },
+      "original": {
+        "ref": "main",
+        "rev": "0d6d739a833ba9a9c93034862e4a7b061a062a1c",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/numtide/treefmt-nix"
       }
     }
   },

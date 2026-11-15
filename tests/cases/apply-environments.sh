@@ -49,9 +49,11 @@ page() {
 # environments REPO NAME...: answer the listing of environments of REPO with
 # the environments NAME.
 environments() {
-  local repo=$1
+  local repo=$1 request answer
   shift
-  fixture "$(listing "${repo}")" "$(page "$@")"
+  request=$(listing "${repo}")
+  answer=$(page "$@")
+  fixture "${request}" "${answer}"
 }
 
 # apply_to NAME EXPECTED REPO [NAME=VALUE...]: run apply.sh on REPO with the
@@ -71,8 +73,12 @@ fixture "${policies}?per_page=100" '{"branch_policies": [
 apply_to "atom-x" ok atom-x
 expect message 'atom-x: done'
 # release requires the owner, cache no reviewer.
-expect call "$(put release) --input=$(environment "[${owner}]")"
-expect call "$(put cache) --input=$(environment '[]')"
+request=$(put release)
+body=$(environment "[${owner}]")
+expect call "${request} --input=${body}"
+request=$(put cache)
+body=$(environment '[]')
+expect call "${request} --input=${body}"
 # The policy main is kept, the policy * and the tag policy release/v* are
 # deleted, and the branch policy release/v* is added.
 expect no-call "${policies}/1"
@@ -94,7 +100,9 @@ apply_to "image-w gets release and publish" ok image-w
 expect call repos/fy/image-w/environments/release
 expect no-call repos/fy/image-w/environments/cache
 # publish requires the owner of release, and allows main and release/v*.
-expect call "$(put publish image-w) --input=$(environment "[${owner}]")"
+request=$(put publish image-w)
+body=$(environment "[${owner}]")
+expect call "${request} --input=${body}"
 expect call "POST ${publish_policies} name=main type=branch"
 expect call "POST ${publish_policies} name=release/v* type=branch"
 finish
@@ -135,10 +143,12 @@ finish
 # The environment is on page 2, which only --paginate reads.
 setup_org
 environments decisions
-next_page "$(listing decisions)" 2 "$(page release)"
+request=$(listing decisions)
+answer=$(page release)
+next_page "${request}" 2 "${answer}"
 apply_to "unreleased" ok decisions
 expect message release
-expect call "GET $(listing decisions)"
+expect call "GET ${request}"
 expect no-call "PUT repos/fy/decisions/environments/"
 finish
 

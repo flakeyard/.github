@@ -37,20 +37,25 @@ finish
 for repo in atom-x action-y workflow-z image-w template-v renovate-config; do
   setup_org
   run "${repo} creates pull requests" ok org/apply.sh BOT_APP_ID=42 -- "${repo}"
-  expect call "$(put "${repo}") --input=$(permissions true)"
+  request=$(put "${repo}")
+  body=$(permissions true)
+  expect call "${request} --input=${body}"
   finish
 done
 
 for repo in .github decisions probe-renovate; do
   setup_org
   run "${repo} creates no pull requests" ok org/apply.sh BOT_APP_ID=42 -- "${repo}"
-  expect call "$(put "${repo}") --input=$(permissions false)"
+  request=$(put "${repo}")
+  body=$(permissions false)
+  expect call "${request} --input=${body}"
   finish
 done
 
 # The organization forbids the flag: GitHub answers 409 Conflict.
 setup_org
-apply FAIL_ON="$(put atom-x) ${http_conflict}"
+request=$(put atom-x)
+apply FAIL_ON="${request} ${http_conflict}"
 run "forbidden" fail org/apply.sh BOT_APP_ID=42 -- atom-x
 expect no-message 'atom-x: done'
 finish

@@ -21,7 +21,9 @@ page() {
 
 # listed RULESET...: answer the listing of rulesets with "NAME=ID" pairs.
 listed() {
-  fixture "${listing}" "$(page "$@")"
+  local answer
+  answer=$(page "$@")
+  fixture "${listing}" "${answer}"
 }
 
 # release_tags: the body of the ruleset release-tags with the bot app 42.
@@ -40,8 +42,10 @@ setup_org
 listed
 apply_rulesets "none" ok
 expect call "GET ${listing}"
-expect call "POST ${rulesets} --input=$(jq -c . "${root}/org/repository/rulesets/main.json")"
-expect call "POST ${rulesets} --input=$(release_tags)"
+body=$(jq -c . "${root}/org/repository/rulesets/main.json")
+expect call "POST ${rulesets} --input=${body}"
+body=$(release_tags)
+expect call "POST ${rulesets} --input=${body}"
 expect no-call "PUT ${rulesets}/"
 expect no-message 'warning:'
 finish
@@ -50,13 +54,15 @@ setup_org
 listed main=1 release-branches=2 release-tags=3 version-branches=4
 apply_rulesets "all" ok
 expect call "PUT ${rulesets}/1 --input="
-expect call "PUT ${rulesets}/3 --input=$(release_tags)"
+body=$(release_tags)
+expect call "PUT ${rulesets}/3 --input=${body}"
 expect no-call "POST ${rulesets}"
 finish
 
 setup_org
 listed main=1
-next_page "${listing}" 2 "$(page release-tags=3)"
+answer=$(page release-tags=3)
+next_page "${listing}" 2 "${answer}"
 apply_rulesets "two pages: replaces release-tags of page 2" ok
 expect call "PUT ${rulesets}/3 --input="
 finish

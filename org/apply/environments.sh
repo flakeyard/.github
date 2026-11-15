@@ -63,14 +63,15 @@ environment_reviewers() {
 # merges start. Admins may not bypass the rules: a waiting job runs only after
 # a reviewer approves it, and only on a deploy branch.
 create_deploy_environment() {
-  local env=$1 reviewers=$2
-  jq -n --argjson reviewers "${reviewers}" '{
+  local env=$1 reviewers=$2 body
+  body=$(jq -n --argjson reviewers "${reviewers}" '{
     reviewers: $reviewers,
     prevent_self_review: false,
     can_admins_bypass: false,
     deployment_branch_policy:
       {protected_branches: false, custom_branch_policies: true}
-  }' | gh api --silent -X PUT "${env}" --input -
+  }')
+  gh api --silent -X PUT "${env}" --input - <<<"${body}"
 }
 
 # deploy_environment REPO NAME [LIST]: create the environment NAME of REPO,

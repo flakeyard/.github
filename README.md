@@ -35,11 +35,14 @@ nixpkgs, such as `nix run nixpkgs#prettier`. Nix on the host works as well:
 behind its preset tag ([workflow-check ADR-0001][workflow-check-adr-0001]), and
 builds the checks of the root [`flake.nix`](flake.nix), which only imports atoms
 ([FY-0038][fy-0038]): [atom-workflows][atom-workflows] lints the workflows with
-actionlint and zizmor (`checks.workflows`). Run them with `nix flake check`. The
-weekly run of `test.yaml` also checks the end of life of the nixpkgs branch in
-`flake.lock` ([FY-0036][fy-0036]).
-[`scorecard.yaml`](.github/workflows/scorecard.yaml) runs OpenSSF Scorecard
-through [workflow-scorecard][workflow-scorecard].
+actionlint and zizmor (`checks.workflows`). [atom-nix][atom-nix] lints the Nix
+files with statix, deadnix and its hook of relative paths (`checks.nix`),
+[atom-shell][atom-shell] lints the shell scripts with shellcheck
+(`checks.shell`), and treefmt checks their formatting with nixfmt and shfmt
+(`checks.treefmt`). Run them with `nix flake check`. The weekly run of
+`test.yaml` also checks the end of life of the nixpkgs branch in `flake.lock`
+([FY-0036][fy-0036]). [`scorecard.yaml`](.github/workflows/scorecard.yaml) runs
+OpenSSF Scorecard through [workflow-scorecard][workflow-scorecard].
 [`audit.yaml`](.github/workflows/audit.yaml) audits the releases of every
 repository each week, see [org/](org/README.md#release-audit).
 
@@ -48,8 +51,8 @@ repository each week, see [org/](org/README.md#release-audit).
 This repository is bootstrapped under [FY-0022][fy-0022]. Until the providers of
 its remaining checks are released:
 
-- shellcheck, shfmt, Prettier, markdownlint, typos and `reuse lint` run locally
-  before every pull request (provider: the atoms).
+- Prettier, markdownlint, typos and `reuse lint` run locally before every pull
+  request (provider: the atoms).
 
 ## License
 
@@ -57,6 +60,8 @@ its remaining checks are released:
 Contributor Covenant under [CC-BY-4.0](LICENSES/CC-BY-4.0.txt). Licensing of
 every file is declared in [REUSE.toml](REUSE.toml).
 
+[atom-nix]: https://github.com/flakeyard/atom-nix
+[atom-shell]: https://github.com/flakeyard/atom-shell
 [atom-workflows]: https://github.com/flakeyard/atom-workflows
 [fy-0022]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0022-bootstrap.md

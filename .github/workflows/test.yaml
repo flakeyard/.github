@@ -55,7 +55,7 @@ jobs:
     with:
       needs: ${{ toJSON(needs) }}
       flake: .
-      expect-checks: '["workflows"]'
+      expect-checks: '["nix","shell","treefmt","workflows"]'
       renovate-presets: '["flakeyard/renovate-config"]'
       # The default configurations of the atoms apply (FY-0037).
       forbid-tool-configs: true

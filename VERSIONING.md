@@ -31,10 +31,11 @@ A breaking change of any of the following requires a new major version:
   - its failure on runners where Nix was installed before;
   - the effects later steps rely on: `nix` on `PATH`, a running daemon, the
     shell profiles and build users set up by the Nix installer.
-- **Library actions** ([FY-0035][fy-0035]), such as `action-shell-lib`, in
-  addition, as their README documents them:
-  - the names of their functions, their arguments and return codes;
-  - the variables those functions read and write.
+- **`lib-` repositories** ([FY-0040][fy-0040]), such as `lib-atom` and
+  `lib-actions`, as their README documents them:
+  - the names of their functions, their arguments and results;
+  - for a library action ([FY-0035][fy-0035]), their return codes and the
+    variables they read and write.
 - **Templates**: questions and their defaults, the layout of generated projects,
   the major versions of other flakeyard repositories they reference and the
   minimum Copier version.
@@ -56,9 +57,10 @@ Tool versions are not part of the API of atoms or of the image: atoms run the
 tools from the project's nixpkgs, so a new warning after a nixpkgs update comes
 from that update, not from an atom release.
 
-The helpers in `internal/testing/` of a library action are not part of its API.
-A major release of a library is not by itself a major release of the actions and
-workflows that use it; they are released by the effect on their own API.
+The helpers in `internal/testing/` of a `lib-` repository are not part of its
+API. A major release of a library is not by itself a major release of the
+actions and workflows that use it; they are released by the effect on their own
+API.
 
 The Nix of the image and of `action-setup-nix` is part of their API. A new patch
 version of Nix is a patch release and a new minor version a minor release,
@@ -95,6 +97,8 @@ releases are not patched. The previous major version receives security fixes for
   https://github.com/flakeyard/action-setup-nix/blob/main/docs/adr/records/0001-set-up-nix-on-ci-runners.md
 [fy-0035]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0035-extract-logic-that-has-two-users.md
+[fy-0040]:
+  https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0040-share-code-through-lib-repositories.md
 [fy-0024]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0024-versioning-and-support.md
 [fy-0029]:

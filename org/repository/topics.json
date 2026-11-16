@@ -5,6 +5,7 @@
   "workflow-*": ["github-actions", "reusable-workflows"],
   "image-*": ["devcontainer", "oci-image", "nix"],
   "template-*": ["copier", "copier-template", "nix"],
+  "lib-*": ["library"],
   "renovate-config": ["renovate", "renovate-config"],
   "decisions": ["architecture-decision-records", "adr"]
 }

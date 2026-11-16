@@ -1,1 +1,9 @@
-["atom-*", "action-*", "workflow-*", "image-*", "template-*", "renovate-config"]
+[
+  "atom-*",
+  "action-*",
+  "workflow-*",
+  "image-*",
+  "template-*",
+  "lib-*",
+  "renovate-config"
+]

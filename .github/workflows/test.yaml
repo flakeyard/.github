@@ -35,7 +35,7 @@ jobs:
           persist-credentials: false
       # The harness of the tests, at the commit that the tests read here.
       - id: lib
-        uses: flakeyard/action-shell-lib@5c59164109499a225af9b75488caf142802add84 # v0.3.1
+        uses: flakeyard/action-shell-lib@eaafc6e2caac916f38620d0e5c6001fa3834a340 # v0.3.2
       # Needs bash and jq, which the runner has; the stub of gh answers
       # every call, so no token is used.
       - env:

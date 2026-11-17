@@ -36,17 +36,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1794760499,
-        "narHash": "sha256-/bO49KAeVKd92ctpzTyKXvBjM5/+65dISrjYcE1ce8c=",
+        "lastModified": 1794763158,
+        "narHash": "sha256-wnB+HBqXnQOG/8/u+kpA1NYlTJpT6va3JroDAgM62yI=",
         "ref": "v0",
-        "rev": "c6191ba89fd4b4be340cbddfc3fdbeb7f82d3cc5",
+        "rev": "566536a1e4bc2d1bad24688f9828d5ae7d9ec3a9",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/flakeyard/atom-shell"
       },
       "original": {
         "ref": "v0",
-        "rev": "c6191ba89fd4b4be340cbddfc3fdbeb7f82d3cc5",
+        "rev": "566536a1e4bc2d1bad24688f9828d5ae7d9ec3a9",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/flakeyard/atom-shell"

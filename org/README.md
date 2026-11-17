@@ -230,9 +230,9 @@ is one of the measured times.
 
 The tests run the scripts of `org/` against a stub of `gh` that answers from
 fixtures and logs the calls, so they need no token. Their harness is
-`internal/testing` of [action-shell-lib][action-shell-lib] at the commit that
-`test.yaml` pins: CI passes it in `SHELL_LIB`, and otherwise `tests/run.sh`
-fetches it once with `git` into `~/.cache/flakeyard/action-shell-lib/<commit>`:
+`internal/testing` of [lib-actions][lib-actions] at the commit that `test.yaml`
+pins: CI passes it in `SHELL_LIB`, and otherwise `tests/run.sh` fetches it once
+with `git` into `~/.cache/flakeyard/lib-actions/<commit>`:
 
 ```sh
 ../tests/run.sh
@@ -280,7 +280,7 @@ hand, by an organization owner:
   Personal access tokens, allow fine-grained tokens with administrator approval
   and a maximum lifetime of 90 days, and restrict classic tokens.
 
-[action-shell-lib]: https://github.com/flakeyard/action-shell-lib
+[lib-actions]: https://github.com/flakeyard/lib-actions
 [mend-portal]: https://developer.mend.io/
 [renovate-app]: https://github.com/apps/renovate
 [fy-0007]:

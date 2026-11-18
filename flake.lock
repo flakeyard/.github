@@ -86,22 +86,23 @@
         "git-hooks": [
           "git-hooks"
         ],
+        "lib-atom": "lib-atom_4",
         "treefmt-nix": [
           "treefmt-nix"
         ]
       },
       "locked": {
-        "lastModified": 1794763158,
-        "narHash": "sha256-wnB+HBqXnQOG/8/u+kpA1NYlTJpT6va3JroDAgM62yI=",
+        "lastModified": 1794916102,
+        "narHash": "sha256-G0lwWo/85NXSBuU01iH0nmWFGxqIN2SzHXw/pIGaMRE=",
         "ref": "v0",
-        "rev": "566536a1e4bc2d1bad24688f9828d5ae7d9ec3a9",
+        "rev": "1ccc313cdbc71333cd8117c72996dc40eecd2889",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/flakeyard/atom-shell"
       },
       "original": {
         "ref": "v0",
-        "rev": "566536a1e4bc2d1bad24688f9828d5ae7d9ec3a9",
+        "rev": "1ccc313cdbc71333cd8117c72996dc40eecd2889",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/flakeyard/atom-shell"
@@ -112,7 +113,7 @@
         "git-hooks": [
           "git-hooks"
         ],
-        "lib-atom": "lib-atom_4"
+        "lib-atom": "lib-atom_5"
       },
       "locked": {
         "lastModified": 1794908283,
@@ -290,6 +291,24 @@
       }
     },
     "lib-atom_4": {
+      "locked": {
+        "lastModified": 1794902163,
+        "narHash": "sha256-cD6ZkxNK0x+wGVL9OZPU+QohKfaBPvTr9AZnWUS8spQ=",
+        "ref": "v0",
+        "rev": "f2c83b7399315afb477abba1e112bca107f0b345",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/flakeyard/lib-atom"
+      },
+      "original": {
+        "ref": "v0",
+        "rev": "f2c83b7399315afb477abba1e112bca107f0b345",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/flakeyard/lib-atom"
+      }
+    },
+    "lib-atom_5": {
       "locked": {
         "lastModified": 1794902163,
         "narHash": "sha256-cD6ZkxNK0x+wGVL9OZPU+QohKfaBPvTr9AZnWUS8spQ=",

@@ -8,7 +8,8 @@ on:
     types: [opened, synchronize, reopened, edited] # edited: the title check
   push:
     branches: [main, "release/v*"]
-  # Weekly, for the end of life of the nixpkgs branch in flake.lock (FY-0036).
+  # Weekly, for the end of life of the nixpkgs branch in flake.lock (FY-0036)
+  # and the apps that need the network.
   schedule:
     - cron: "31 4 * * 1"
   workflow_dispatch: # manual checks; dispatched runs post a commit status
@@ -55,7 +56,10 @@ jobs:
     with:
       needs: ${{ toJSON(needs) }}
       flake: .
-      expect-checks: '["nix","shell","treefmt","workflows"]'
+      expect-checks: '["data-formats","markdown","nix","shell","text","treefmt","workflows"]'
+      # Weekly, the apps that need the network: the links of the Markdown files
+      # and the online audits of the workflows.
+      apps: ${{ github.event_name == 'schedule' && '["markdown-links","workflows-online"]' || '[]' }}
       renovate-presets: '["flakeyard/renovate-config"]'
       # The default configurations of the atoms apply (FY-0037).
       forbid-tool-configs: true

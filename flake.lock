@@ -140,17 +140,17 @@
         "lib-atom": "lib-atom_6"
       },
       "locked": {
-        "lastModified": 1794915917,
-        "narHash": "sha256-MsmSpLws6Sb77ifFKYC7P3Z/rtxK/Bh4qqNixs3FzHE=",
+        "lastModified": 1795020481,
+        "narHash": "sha256-TNUFVzquSAPLfjewz6Z7lnvvR5cmvk+tlrKLgrjhlhg=",
         "ref": "v0",
-        "rev": "35e4a0994f92cc6c47b018fcf062aca59598c493",
+        "rev": "476bd0c2c31ffc313f006f551c8fac37ce7840ff",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/flakeyard/atom-workflows"
       },
       "original": {
         "ref": "v0",
-        "rev": "35e4a0994f92cc6c47b018fcf062aca59598c493",
+        "rev": "476bd0c2c31ffc313f006f551c8fac37ce7840ff",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/flakeyard/atom-workflows"
@@ -332,17 +332,17 @@
     },
     "lib-atom_6": {
       "locked": {
-        "lastModified": 1794913667,
-        "narHash": "sha256-OafPn8h5G3dppZLrDnHGGHE+r5sb0aq+jaVsS0LJy4I=",
+        "lastModified": 1794916860,
+        "narHash": "sha256-dU0TiUNrWwRK8GiQEyfIGEyrAAOdircz6OS9O6fgzZ0=",
         "ref": "v0",
-        "rev": "747f5680bfded1108d25302ab59d105c35087a9b",
+        "rev": "6a962bfb805ce814cba756a7943f6f2d2cd1f67e",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/flakeyard/lib-atom"
       },
       "original": {
         "ref": "v0",
-        "rev": "747f5680bfded1108d25302ab59d105c35087a9b",
+        "rev": "6a962bfb805ce814cba756a7943f6f2d2cd1f67e",
         "shallow": true,
         "type": "git",
         "url": "https://github.com/flakeyard/lib-atom"

@@ -57,14 +57,22 @@ warn_unmanaged_rulesets() {
     "${repo}" "${unmanaged}" >&2
 }
 
+# apply_rulesets REPO: create the rulesets that REPO lacks, then replace the
+# ones it has. Creating first means that a rule moved from one ruleset to a new
+# one, as release/v* from main to release-protection, is never left uncovered;
+# a failed creation stops the step before any replacement.
 apply_rulesets() {
-  local repo=$1 rulesets existing file name id
+  local repo=$1 rulesets existing pass file name id
   rulesets="repos/${org}/${repo}/rulesets"
   existing=$(list_rulesets "${rulesets}")
-  for file in "${here}"/repository/rulesets/*.json; do
-    name=$(jq -r .name "${file}")
-    id=$(ruleset_id "${name}" <<<"${existing}")
-    upsert_ruleset "${rulesets}" "${file}" "${id}"
+  for pass in create replace; do
+    for file in "${here}"/repository/rulesets/*.json; do
+      name=$(jq -r .name "${file}")
+      id=$(ruleset_id "${name}" <<<"${existing}")
+      [[ -z ${id} && ${pass} == create || -n ${id} && ${pass} == replace ]] \
+        || continue
+      upsert_ruleset "${rulesets}" "${file}" "${id}"
+    done
   done
   warn_unmanaged_rulesets "${repo}" "${existing}"
 }

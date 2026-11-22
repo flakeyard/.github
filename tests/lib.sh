@@ -34,3 +34,20 @@ fixture_page() {
   body=$(cat)
   if ((page == 1)); then fixture "${path}" "${body}"; else next_page "${path}" "${page}" "${body}"; fi
 }
+
+# expect_order LOG TEXT...: the log LOG of the last run, stdout or calls, has a
+# line with each TEXT, in the order given.
+# shellcheck disable=SC2154 # work comes from case.sh of the harness
+expect_order() {
+  local log=$1 text line last=0
+  shift
+  for text; do
+    line=$(grep -m 1 -nF -- "${text}" "${work}/${log}")
+    line=${line%%:*}
+    ((${line:-0} > last)) || {
+      report "no '${text}' after line ${last} of ${log}"
+      return
+    }
+    last=${line}
+  done
+}

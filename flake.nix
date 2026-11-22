@@ -26,7 +26,7 @@
       inputs.git-hooks.follows = "git-hooks";
     };
     atom-nix = {
-      url = "git+https://github.com/flakeyard/atom-nix?ref=v0&rev=285ea1c7acb0841c0d253b998ee8a54217baef39&shallow=1";
+      url = "git+https://github.com/flakeyard/atom-nix?ref=v0&rev=c591b0716c9fe3f16074637e63ee9128e602ee6a&shallow=1";
       inputs.treefmt-nix.follows = "treefmt-nix";
       inputs.git-hooks.follows = "git-hooks";
     };

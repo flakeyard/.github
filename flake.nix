@@ -16,34 +16,34 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     atom-data-formats = {
-      url = "git+https://github.com/flakeyard/atom-data-formats?ref=v0&rev=0c643933ae631061f9fb6f1f26cf556db689f011&shallow=1";
+      url = "git+https://github.com/flakeyard/atom-data-formats?ref=v0&rev=933cbb3ff234825dd19a55c91a1bb279ea2682cb&shallow=1";
       inputs.treefmt-nix.follows = "treefmt-nix";
       inputs.git-hooks.follows = "git-hooks";
     };
     atom-markdown = {
-      url = "git+https://github.com/flakeyard/atom-markdown?ref=v0&rev=0d3bca6f2fee47de01ecbe2ce1e49c0219870988&shallow=1";
+      url = "git+https://github.com/flakeyard/atom-markdown?ref=v0&rev=90a9dc7b59521c187fabd6662205b88e712d088d&shallow=1";
       inputs.treefmt-nix.follows = "treefmt-nix";
       inputs.git-hooks.follows = "git-hooks";
     };
     atom-nix = {
-      url = "git+https://github.com/flakeyard/atom-nix?ref=v0&rev=285ea1c7acb0841c0d253b998ee8a54217baef39&shallow=1";
+      url = "git+https://github.com/flakeyard/atom-nix?ref=v0&rev=c591b0716c9fe3f16074637e63ee9128e602ee6a&shallow=1";
       inputs.treefmt-nix.follows = "treefmt-nix";
       inputs.git-hooks.follows = "git-hooks";
     };
     atom-shell = {
-      url = "git+https://github.com/flakeyard/atom-shell?ref=v0&rev=9cc395d50024ee12c6b71ae6df77ea8b4a2aba66&shallow=1";
+      url = "git+https://github.com/flakeyard/atom-shell?ref=v0&rev=912d34e8313d5d300c49c6484466bbcb396aab46&shallow=1";
       inputs.treefmt-nix.follows = "treefmt-nix";
       inputs.git-hooks.follows = "git-hooks";
     };
     atom-text = {
-      url = "git+https://github.com/flakeyard/atom-text?ref=v0&rev=64bd85b85d3fc823cf43c71baa9279caeda8a92c&shallow=1";
+      url = "git+https://github.com/flakeyard/atom-text?ref=v0&rev=68467987a5d8db04681d587ffaa2d9aa755a4f62&shallow=1";
       inputs.git-hooks.follows = "git-hooks";
     };
     atom-workflows = {
-      url = "git+https://github.com/flakeyard/atom-workflows?ref=v0&rev=476bd0c2c31ffc313f006f551c8fac37ce7840ff&shallow=1";
+      url = "git+https://github.com/flakeyard/atom-workflows?ref=v0&rev=5eeed2dd0411ebdd186d37bc401712edc5069aa1&shallow=1";
       inputs.git-hooks.follows = "git-hooks";
     };
-    atom-workspace.url = "git+https://github.com/flakeyard/atom-workspace?ref=v0&rev=df1b7e30233e3bb0f489834f84070a25b0b0807f&shallow=1";
+    atom-workspace.url = "git+https://github.com/flakeyard/atom-workspace?ref=v0&rev=19b05dd722aa405c6110364ca60438d94855d1fe&shallow=1";
   };
 
   outputs =

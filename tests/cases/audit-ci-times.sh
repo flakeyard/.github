@@ -63,20 +63,6 @@ jobs_of() {
   jq -s '{jobs: .}' | fixture_page "repos/fy/atom-x/actions/runs/${run}/jobs?per_page=100" 1
 }
 
-# expect_order TEXT...: stdout has a line with each TEXT, in the order given.
-# shellcheck disable=SC2154 # work comes from case.sh of the harness
-expect_order() {
-  local text line last=0
-  for text; do
-    line=$(grep -nF -- "${text}" "${work}/stdout" | head -n 1 | cut -d: -f1)
-    ((${line:-0} > last)) || {
-      report "no '${text}' after line ${last}"
-      return
-    }
-    last=${line}
-  done
-}
-
 # Two branches of pull requests, a cancelled run, a run that failed to start
 # and has no jobs, a push on a second page, matrix jobs and a skipped job.
 setup_org
@@ -113,7 +99,7 @@ expect message '| atom-x | pull_request | 5 | 3 | 5:00 | 10:00 | 3:30 | 8:00 |'
 expect message '| atom-x | push | 1 | 1 | 4:00 | 4:00 | 3:00 | 3:00 |'
 expect no-call runs/3/jobs
 # Matrix values other than systems are dropped; slowest jobs first.
-expect_order '| atom-x | unit (x86_64-linux) | 1 | 3:00 | 3:00 |' \
+expect_order stdout '| atom-x | unit (x86_64-linux) | 1 | 3:00 | 3:00 |' \
   '| atom-x | check / meta | 2 | 1:50 | 6:00 |' \
   '| atom-x | unit | 3 | 1:30 | 2:00 |'
 expect no-message 'check / pending'

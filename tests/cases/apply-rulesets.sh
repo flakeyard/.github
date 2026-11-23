@@ -51,12 +51,23 @@ expect no-message 'warning:'
 finish
 
 setup_org
-listed main=1 release-branches=2 release-tags=3 version-branches=4
+listed main=1 release-branches=2 release-protection=5 release-tags=3 \
+  version-branches=4
 apply_rulesets "all" ok
 expect call "PUT ${rulesets}/1 --input="
 body=$(release_tags)
 expect call "PUT ${rulesets}/3 --input=${body}"
 expect no-call "POST ${rulesets}"
+finish
+
+# release/v* moved from main to release-protection: the new ruleset is created
+# before main stops covering the branches.
+setup_org
+listed main=1 release-branches=2 release-tags=3 version-branches=4
+apply_rulesets "new ruleset before replaced ones" ok
+expect_order calls "POST ${rulesets} --input=" "PUT ${rulesets}/1 --input="
+body=$(jq -c . "${root}/org/repository/rulesets/release-protection.json")
+expect call "POST ${rulesets} --input=${body}"
 finish
 
 setup_org

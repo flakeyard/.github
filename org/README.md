@@ -68,6 +68,31 @@ more needs the owner's approval on GitHub, and then a pull request that lists
 the new permission. The check changes nothing and runs after every setting is
 applied: it prints every difference and then fails.
 
+The rulesets of `repository/rulesets/` protect the branches and tags of every
+repository; `main` and `release-protection` have no bypass actors
+([FY-0041][fy-0041]):
+
+| Ruleset              | Refs               | Rules                           |
+| -------------------- | ------------------ | ------------------------------- |
+| `main`               | the default branch | PR, check, signatures, queue    |
+| `release-protection` | `release/v*`       | those of `main` but the queue   |
+| `release-branches`   | `release/v*`       | only org admins create them     |
+| `release-tags`       | `v*` tags          | only the release bot moves them |
+| `version-branches`   | `v[0-9]*` branches | none can be made                |
+
+A pull request to the default branch is merged only through the merge queue,
+which tests it on top of the tip of the branch, so `check / required` is not
+strict there. The queue cannot cover a pattern such as `release/v*`, so
+`release-protection` keeps the same rules with strict checks: a pull request to
+`release/vN` is merged when it is up to date and checked. `apply.sh` creates the
+rulesets that a repository lacks before it replaces the ones it has, so a rule
+that moves to a new ruleset is never uncovered in between. Without a bypass, a
+new repository gets its signed initial commit on `main` before `apply.sh` runs
+for it.
+
+To leave the merge queue, set `strict_required_status_checks_policy` back to
+`true` in `main.json`, remove its rule `merge_queue` and run `apply.sh`.
+
 Run `apply.sh` for every new repository. It needs the ID of the release bot
 GitHub App, either as `BOT_APP_ID` in the environment or as the organization
 variable of the same name; only that app may create, move or delete `v*` tags.
@@ -297,5 +322,7 @@ hand, by an organization owner:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0029-renovate-mend.md
 [fy-0030]:
   https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0030-actions-workflows-and-release-bot.md
+[fy-0041]:
+  https://github.com/flakeyard/decisions/blob/main/docs/adr/records/0041-merge-through-the-merge-queue.md
 [workflow-api]:
   https://docs.github.com/en/rest/actions/permissions#set-default-workflow-permissions-for-a-repository

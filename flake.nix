@@ -2,7 +2,7 @@
   description = ".github: the checks of this repository, which come only from atoms.";
 
   inputs = {
-    nixpkgs.url = "git+https://github.com/NixOS/nixpkgs?ref=nixos-26.05&rev=f1e5c356f35d07e7b71a6b5e6c9338e0b029e0c0&shallow=1";
+    nixpkgs.url = "git+https://github.com/NixOS/nixpkgs?ref=nixos-26.05&rev=0dc498bfe49baeb18b0f9891e800b53bb2603193&shallow=1";
     flake-parts = {
       url = "git+https://github.com/hercules-ci/flake-parts?ref=main&rev=ea2630b7470978622c7689a1ff75d2b389175399&shallow=1";
       inputs.nixpkgs-lib.follows = "nixpkgs";

@@ -2,5 +2,5 @@
   "image": "ghcr.io/flakeyard/image-devcontainer:v0.3.0@sha256:2bd17dd90e37bfc5f47f2ea5b6792bbb4e7708b85e2cc02df9a6a090ea5a8778",
   "workspaceMount": "source=${localWorkspaceFolder},target=/home/dev/${localWorkspaceFolderBasename},type=bind",
   "workspaceFolder": "/home/dev/${localWorkspaceFolderBasename}",
-  "postCreateCommand": "direnv allow && direnv exec . true"
+  "postCreateCommand": "devcontainer-setup"
 }
